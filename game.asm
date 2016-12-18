@@ -78,7 +78,7 @@ drawmap:
 		mov cx, 0
 		drawmap_l2: ;Horizontal loop
 			mov bx, dx		;Get row number
-			mov ax, 10		;Multiply row number * 10
+			mov ax, 14		;Multiply row number * 10
 			mul bl			;
 			mov bx, ax		;
 			add bx, cx		;Add collumn number
@@ -99,30 +99,30 @@ drawmap:
 			pop dx			;Restore counters
 			pop cx
 			inc cx
-			cmp cx, 10
+			cmp cx, 14
 			jl drawmap_l2
 		inc dx
-		cmp dx, 10
+		cmp dx, 12
 		jl drawmap_l1
 	popa
 	popf
 	ret
-	drawmap_padx: db ( 320 - 160 ) / 2
-	drawmap_pady: db ( 200 - 160 ) / 2
+	drawmap_padx: db ( 320 - 14 * 16 ) / 2
+	drawmap_pady: db ( 200 - 10 * 16 ) / 2
 
 
 playerx: db 0
 playery: db 0
 map:
-	db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
-	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
-	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
-	db 1, 0, 0, 0, 0, 2, 0, 0, 0, 1
-	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
-	db 1, 0, 3, 0, 0, 0, 0, 0, 0, 1
-	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
-	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
-	db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+	db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 
 %include "sprites.asm"
