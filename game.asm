@@ -92,6 +92,8 @@ drawmap:
 			push dx
 			shl cx, 4		;Multiply counter values * 16
 			shl dx, 4
+			add cx, [drawmap_padx] ;Add padding
+			add dx, [drawmap_pady]
 			call drawsprite
 			mov al, 7
 			pop dx			;Restore counters
@@ -105,6 +107,8 @@ drawmap:
 	popa
 	popf
 	ret
+	drawmap_padx: db ( 320 - 160 ) / 2
+	drawmap_pady: db ( 200 - 160 ) / 2
 
 
 playerx: db 0
