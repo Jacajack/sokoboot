@@ -6,10 +6,10 @@ mov ah, 0x0
 int 0x10
 
 ;TEST
-mov bx, sprite_box
-mov cx, 10
-mov dx, 10
-call drawsprite
+;mov bx, sprite_box
+;mov cx, 10
+;mov dx, 10
+call drawmap
 
 jmp $
 
@@ -33,12 +33,9 @@ drawsprite:
 	;dx - y position
 	pushf
 	pusha
-
 	mov [drawsprite_x], cx ;Store offset
 	mov [drawsprite_y], dx ;Store offset
-
-	;Vertical (slower) loop
-	mov dx, 0
+	mov dx, 0 ;Vertical (slower) loop
 	drawsprite_l1:
 		mov cx, 0
 		drawsprite_l2: 		;Horizontal (faster loop)
@@ -63,19 +60,56 @@ drawsprite:
 	drawsprite_x: dw 0
 	drawsprite_y: dw 0
 
+;Draws whole map on screen
+drawmap:
+	pushf
+	pusha
+	mov dx, 0 	;Vertical loop
+	drawmap_l1:
+		mov cx, 0
+		drawmap_l2: ;Horizontal loop
+			mov bx, dx		;Get row number
+			mov ax, 10		;Multiply row number * 10
+			mul bl			;
+			mov bx, ax		;
+			add bx, cx		;Add collumn number
+			add bx, map 	;Add tile number to map pointer
+			mov bx, [bx]	;Fetch map tile
+			mov ax, 64		;Multiply map tile id * 64
+			mul bl			;
+			mov bx, ax		;
+			add bx, sprites	;Add calculated offset to sprites array
+			push cx			;Store coutners
+			push dx
+			shl cx, 3		;Multiply counter values * 8
+			shl dx, 3
+			call drawsprite
+			mov al, 7
+			pop dx			;Restore counters
+			pop cx
+			inc cx
+			cmp cx, 10
+			jl drawmap_l2
+		inc dx
+		cmp dx, 10
+		jl drawmap_l1
+	popa
+	popf
+	ret
+
 
 playerx: db 0
 playery: db 0
 map:
-	db 0, 0, 0, 0, 0, 0, 0, 1, 0, 0
-	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 2, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 3, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 
 %include "sprites.asm"
