@@ -39,20 +39,29 @@ drawsprite:
 	drawsprite_l1:
 		mov cx, 0
 		drawsprite_l2: 		;Horizontal (faster loop)
-			add cx, 1		;Increment horizontal counter
-			mov ax, [bx] 	;Increment sprite pointer
+			add cx, 2		;Increment horizontal counter
 			push cx			;Store counter value
 			push dx			;Store counter value
 			add cx, [drawsprite_x] ;Add offset
 			add dx, [drawsprite_y] ;Add offset
-			call putpixel 	;Draw pixel
+			mov ax, [bx] 	;Fetch color
+
+			;Draw 4 pixels
+			call putpixel
+			inc cx
+			call putpixel
+			inc dx
+			call putpixel
+			dec cx
+			call putpixel
+
 			pop dx			;Restore counter value
-			pop cx			;Restore counter value
+			pop cx			;Restore counter valu
 			add bx, 1		;Increment pixel counter
-			cmp cx, 8		;Horizontal loop boundary
+			cmp cx, 16		;Horizontal loop boundary
 			jne drawsprite_l2
-		add dx, 1			;Increment vertical counter
-		cmp dx, 8			;Vertical loop boundary
+		add dx, 2			;Increment vertical counter
+		cmp dx, 16			;Vertical loop boundary
 		jne drawsprite_l1
 	popa
 	popf
@@ -81,8 +90,8 @@ drawmap:
 			add bx, sprites	;Add calculated offset to sprites array
 			push cx			;Store coutners
 			push dx
-			shl cx, 3		;Multiply counter values * 8
-			shl dx, 3
+			shl cx, 4		;Multiply counter values * 16
+			shl dx, 4
 			call drawsprite
 			mov al, 7
 			pop dx			;Restore counters
