@@ -96,7 +96,7 @@ drawsprite:
 	drawsprite_x: dw 0
 	drawsprite_y: dw 0
 
-;Draws whole map on screen
+;Draws part of map on screen
 ;cl - start x position
 ;ch - width
 ;dl - start y position
