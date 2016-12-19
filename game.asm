@@ -1,5 +1,15 @@
 [org 0x700]
 
+;DEBUG
+;asd:
+;call kbget
+;call kbhandle
+;call puthex
+;mov al, ah
+;call puthex
+;jmp asd
+;dsa:
+
 ;First of all, enter 13h graphics mode
 mov al, 0x13
 mov ah, 0x0
@@ -13,6 +23,22 @@ int 0x10
 call drawmap
 
 jmp $
+
+;Fetch keystroke
+;return al - ASCII code
+;return ah - BIOS keycode
+kbget:
+	mov al, 0						;Check if there's any character in buffer
+	mov ah, 0x01					;
+	int 0x16						;
+	jnz kbget_abort					;If not, abort
+	mov al, 0						;Get character
+	mov ah, 0x00					;
+	int 0x16						;
+	ret
+	kbget_abort:
+	mov ax, 0
+	ret
 
 ;Plots a single pixel
 ;al - color
@@ -122,3 +148,4 @@ map:			;Map data
 	db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 
 %include "sprites.asm"
+%include "puthex.asm"
