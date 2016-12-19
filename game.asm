@@ -20,8 +20,8 @@ int 0x10
 ;Game logics
 ;Render
 
-mov cx, 2
-mov dx, 1
+mov cl, 2
+mov ch, 1
 call putplayer
 
 mov cl, 0
@@ -112,9 +112,7 @@ drawmap:
 		drawmap_l2: 				;Horizontal loop
 			mov bx, 0				;Clear pointer
 			mov bl, dl				;Get row number
-			mov ax, 32				;Multiply row number * 10
-			mul bl					;
-			mov bx, ax				;
+			shl bx, 5				;Multiply row number * 32
 			push cx					;Store counter
 			mov ch, 0				;Get only lower half
 			add bx, cx				;Add collumn number
@@ -150,13 +148,13 @@ drawmap:
 	drawmap_xstart: db 0
 
 ;Inserts player on map
-;cx - x position
-;dx - y position
+;cl - x position
+;ch - y position
 putplayer:
 	pushf
 	pusha
 	mov [player_x], cl				;Store player position
-	mov [player_y], dl				;
+	mov [player_y], ch				;
 	call getmapaddr					;Get address of field where player should be put
 	mov byte [bx], 5				;Put 5 (player) on map
 	popa
@@ -165,15 +163,16 @@ putplayer:
 
 
 ;Return requested map field address
-;cx - x position
-;dx - y position
+;cl - x position
+;ch - y position
 ;return bx - address
 getmapaddr:
 	pushf
 	pusha
-	mov al, 32						;Multiply y position * 32
-	mul dl							;
-	mov bx, ax						;
+	mov bx, 0						;Clear address register
+	mov bl, ch						;Insert y position
+	shl bx, 5						;Multiply y position * 32
+	mov ch, 0						;
 	add bx, cx						;Add x position
 	add bx, map						;Add map base address
 	mov [getmapaddr_addr], bx		;Temporarily store address in memory
