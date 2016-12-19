@@ -20,6 +20,10 @@ int 0x10
 ;Game logics
 ;Render
 
+mov cl, 0
+mov ch, 14
+mov dl, 0
+mov dh, 10
 call drawmap
 
 jmp $
@@ -94,18 +98,28 @@ drawsprite:
 	drawsprite_y: dw 0
 
 ;Draws whole map on screen
+;cl - start x position
+;ch - width
+;dl - start y position
+;dh - height
 drawmap:
 	pushf
 	pusha
-	mov dx, 0 						;Vertical loop
-	drawmap_l1:						;
-		mov cx, 0					;
+	mov [drawmap_xstart], cl
+	add ch, cl
+	add dh, dl
+	drawmap_l1:						;Vertical loop
+		mov cl, [drawmap_xstart]	;Get starting x position
 		drawmap_l2: 				;Horizontal loop
-			mov bx, dx				;Get row number
+			mov bx, 0				;Clear pointer
+			mov bl, dl				;Get row number
 			mov ax, 14				;Multiply row number * 10
 			mul bl					;
 			mov bx, ax				;
+			push cx					;Store counter
+			mov ch, 0				;Get only lower half
 			add bx, cx				;Add collumn number
+			pop cx					;Restore counter
 			add bx, map 			;Add tile number to map pointer
 			mov bx, [bx]			;Fetch map tile
 			mov ax, 64				;Multiply map tile id * 64
@@ -114,6 +128,8 @@ drawmap:
 			add bx, sprites			;Add calculated offset to sprites array
 			push cx					;Store coutners
 			push dx					;
+			mov ch, 0				;Get only lower half
+			mov dh, 0				;
 			shl cx, 4				;Multiply counter values * 16
 			shl dx, 4				;
 			add cx, [drawmap_padx] 	;Add padding
@@ -121,17 +137,19 @@ drawmap:
 			call drawsprite			;Draw sprite
 			pop dx					;Restore counters
 			pop cx					;
-			inc cx					;Increment counter
-			cmp cx, 14				;Loop boundary
+			inc cl					;Increment counter
+			cmp cl, ch				;Loop boundary
 			jl drawmap_l2			;
-		inc dx						;Increment counter
-		cmp dx, 12					;Loop boundary
+		inc dl						;Increment counter
+		cmp dl, dh					;Loop boundary
 		jl drawmap_l1
 	popa
 	popf
 	ret
+	drawmap_xstart: db 0
 	drawmap_padx: db ( 320 - 14 * 16 ) / 2
 	drawmap_pady: db ( 200 - 10 * 16 ) / 2
+
 
 playerx: db 0 	;Player x position
 playery: db 0 	;Player y position
@@ -140,7 +158,7 @@ map:			;Map data
 	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
-	db 1, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 1
+	db 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1
 	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
