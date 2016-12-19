@@ -18,7 +18,8 @@ dots:
 	jl dots
 
 
-call gfxtest
+;That is pretty much useless and will get replaced with splash screen
+;call gfxtest
 
 jmp 0x700
 jmp $
