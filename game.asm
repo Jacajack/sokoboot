@@ -28,9 +28,7 @@ mov ch, -1
 call movplayer
 
 myloop:
-mov al, 0						;Get character
-mov ah, 0x00					;
-int 0x16
+call getc
 
 ;call puthex
 
@@ -105,6 +103,17 @@ kbget:
 ;return al - ASCII code
 ;return ah - BIOS scancode
 getc:
+	pushf							;Push registers
+	pusha							;
+	mov al, 0x00					;Get character
+	mov ah, 0x00					;
+	int 0x16						;Call interrupt
+	mov [getc_key], ax				;Store key in memory
+	popa							;Pop registers
+	popf							;
+	mov ax, [getc_key]				;Get key into register
+	ret
+	getc_key: dw 0
 
 ;Plots a single pixel
 ;al - color
