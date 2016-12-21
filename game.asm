@@ -234,11 +234,11 @@ movplayer:
 
 
 	;wall
-	cmp byte [bx], 1
+	cmp byte [bx], tile_wall
 	je movplayer_end
 
 	;box
-	cmp byte [bx], 2
+	cmp byte [bx], tile_box
 	je movplayer_box
 	cmp byte [bx], tile_socketbox
 	je movplayer_box
@@ -257,14 +257,13 @@ movplayer:
 		cmp ah, 20
 		jge movplayer_box_abort
 
-
-
-
-
-		mov cx, [movplayer_box_dest]			;Get box destination
+		mov cx, [movplayer_box_position]
 		call getmapaddr
 		mov dl, byte [bx]
 		mov [movplayer_box_tile], dl
+
+		mov cx, [movplayer_box_dest]			;Get box destination
+		call getmapaddr
 
 		cmp byte [bx], tile_socket				;Check if destination is socket
 		je movplayer_box_socket					;Jump to socket code
@@ -286,8 +285,8 @@ movplayer:
 		call getmapaddr							;Get current box address to bx
 
 		mov dl, [movplayer_box_tile]
-		;cmp dl, tile_socket
-		;je movplayer_box_grab_socketbox
+		cmp dl, tile_socketbox
+		je movplayer_box_grab_socketbox
 		jmp movplayer_box_grab_box
 
 		movplayer_box_grab_socketbox:
@@ -295,7 +294,7 @@ movplayer:
 		jmp movplayer_box_ok
 
 		movplayer_box_grab_box:
-		mov byte [bx], tile_socket
+		mov byte [bx], tile_air
 		jmp movplayer_box_ok
 
 
@@ -313,31 +312,30 @@ movplayer:
 	movplayer_move:
 	mov cx, [player_pos]
 	call getmapaddr
-	cmp byte [bx], 6
+	cmp byte [bx], tile_socketplayer
 	je movplayer_move_socket
-	cmp byte [bx], 2
 	jmp movplayer_move_air
 
 	movplayer_move_air:
-	mov byte [bx], 0
+	mov byte [bx], tile_air
 	jmp movplayer_move_place
 	movplayer_move_socket:
-	mov byte [bx], 3
+	mov byte [bx], tile_socket
 	jmp movplayer_move_place
 
 	movplayer_move_place:
 	mov [player_pos], dx
 	mov cx, dx
 	call getmapaddr
-	cmp byte [bx], 3
+	cmp byte [bx], tile_socket
 	je movplayer_move_place_socket
 	jmp movplayer_move_place_air
 
 	movplayer_move_place_air:
-	mov byte [bx], 5
+	mov byte [bx], tile_player
 	jmp movplayer_end
 	movplayer_move_place_socket:
-	mov byte [bx], 6
+	mov byte [bx], tile_socketplayer
 	jmp movplayer_end
 
 	movplayer_end:
@@ -385,7 +383,7 @@ map:			;Map data
 	db 1, 0, 0, 0, 3, 1, 0, 0, 0, 2, 3, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
-	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 	db 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
