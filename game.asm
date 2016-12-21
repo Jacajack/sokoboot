@@ -213,140 +213,110 @@ putplayer:
 movplayer:
 	pushf
 	pusha
+	mov [movplayer_delta], cx					;Store delta
+	mov dx, [player_pos]						;Calculate destination
+	add dl, cl									;
+	add dh, ch									;
+	mov [movplayer_dest], dx					;Store destination (dx)
+	cmp dl, 32									;Check destination bounds
+	jge movplayer_end							;
+	cmp dh, 20									;
+	jge movplayer_end							;
 
-	mov [movplayer_delta], cx
-	mov dx, [player_pos]
-	add dl, cl
-	add dh, ch
-	mov [movplayer_dest], dx
+	push cx										;Get player destination field address
+	mov cx, dx									;
+	call getmapaddr								;
+	pop cx										;
 
-	;Bound check
-	cmp dl, 32
-	jge movplayer_end
-	cmp dh, 20
-	jge movplayer_end
-
-	;Get dest field content
-	push cx
-	mov cx, dx
-	call getmapaddr
-	pop cx
-
-
-	;wall
-	cmp byte [bx], tile_wall
-	je movplayer_end
-
-	;box
-	cmp byte [bx], tile_box
-	je movplayer_box
-	cmp byte [bx], tile_socketbox
-	je movplayer_box
+	cmp byte [bx], tile_wall					;Check if destination is a wall
+	je movplayer_end							;If so, do not allow move
+	cmp byte [bx], tile_box						;Check if destination is a box
+	je movplayer_box							;If so, move box first
+	cmp byte [bx], tile_socketbox				;Check if destination is a socketbox
+	je movplayer_box							;If so, move box first
 	jmp movplayer_move
-	movplayer_box:
+
+	movplayer_box:								;The box moving routine - Ha, ha, charade you aaareee!
 		pusha									;Store all registers
 		mov cx, [movplayer_delta]				;Get player movement direction
 		mov dx, [movplayer_box_position]		;Get box position
-		mov ax, dx								;Add another delta to box position to get box destination
+		mov ax, dx								;Add delta to box position to get box destination
 		add al, cl								;
 		add ah, ch								;
 		mov [movplayer_box_dest], ax			;Store box destination
+		cmp al, 32								;Check box destination bounds
+		jge movplayer_box_abort					;If it exceeds bounds, abort
+		cmp ah, 20								;
+		jge movplayer_box_abort					;
 
-		cmp al, 32
-		jge movplayer_box_abort
-		cmp ah, 20
-		jge movplayer_box_abort
-
-		mov cx, [movplayer_box_position]
-		call getmapaddr
-		mov dl, byte [bx]
-		mov [movplayer_box_tile], dl
-
-		mov cx, [movplayer_box_dest]			;Get box destination
-		call getmapaddr
-
-		cmp byte [bx], tile_socket				;Check if destination is socket
-		je movplayer_box_socket					;Jump to socket code
-		cmp byte [bx], tile_air
-		je movplayer_box_air
-		jmp movplayer_box_abort
-
+		mov cx, [movplayer_box_dest]			;Get box destination field address
+		call getmapaddr							;
+		cmp byte [bx], tile_socket				;Check if destination is a socket
+		je movplayer_box_socket					;If so, jump to socketbox placing routine
+		cmp byte [bx], tile_air					;Check if destination is a wall
+		je movplayer_box_air					;If so, jump to box placing routine
+		jmp movplayer_box_abort					;If destination isn't one of these, abort move
 		movplayer_box_socket:					;Destination tile is socket
 		mov byte [bx], tile_socketbox			;Place a socketbox
 		jmp movplayer_box_grab					;Proceed to destroy old box
-
 		movplayer_box_air:						;Destination tile is air
 		mov byte [bx], tile_box					;Place a box
-		jmp movplayer_box_grab
+		jmp movplayer_box_grab					;Proceed to destroy old box
 
+		movplayer_box_grab:						;Replace old box with something different
+		mov cx, [movplayer_box_position]		;Get current box position
+		call getmapaddr							;Get current box field address
+		mov dl, byte [bx]						;Check what current box looks like
+		cmp dl, tile_socketbox					;If it's a socketbox, leave a socket
+		je movplayer_box_leave_socket			;
+		jmp movplayer_box_leave_air				;Otherwise, leave air
+		movplayer_box_leave_socket:				;Leave socket
+		mov byte [bx], tile_socket				;Place socket on old box position
+		jmp movplayer_box_ok					;Box movement is successfull
+		movplayer_box_leave_air:				;Leave air
+		mov byte [bx], tile_air					;Place air on old box position
+		jmp movplayer_box_ok					;Box movement is successfull
+		movplayer_box_abort:					;Movement insuccessfull
+		popa									;Restore all registers
+		jmp movplayer_end						;Jump to the end of player movement routine
+		movplayer_box_ok:						;Movement successfull
+		popa									;Restore all registers
+		jmp movplayer_move						;Return to player movement routine
 
-		movplayer_box_grab:
-		mov cx, [movplayer_dest]		;Get current box position
-		call getmapaddr							;Get current box address to bx
+	movplayer_move:								;Check how plauer look right now
+	mov cx, [player_pos]						;Get player position
+	call getmapaddr								;Get current player field address
+	cmp byte [bx], tile_socketplayer			;If player stands on socket, call socketplayer move routine
+	je movplayer_move_socket					;
+	jmp movplayer_move_air						;Else, call normal player move routine
+	movplayer_move_air:							;Player stands on normal field
+	mov byte [bx], tile_air						;Replace player with air
+	jmp movplayer_move_place					;Go to place routine
+	movplayer_move_socket:						;Player stands on socket
+	mov byte [bx], tile_socket					;Replace player with socket
+	jmp movplayer_move_place					;Go to place routine
 
-		mov dl, [movplayer_box_tile]
-		cmp dl, tile_socketbox
-		je movplayer_box_grab_socketbox
-		jmp movplayer_box_grab_box
-
-		movplayer_box_grab_socketbox:
-		mov byte [bx], tile_socket
-		jmp movplayer_box_ok
-
-		movplayer_box_grab_box:
-		mov byte [bx], tile_air
-		jmp movplayer_box_ok
-
-
-		movplayer_box_abort:
-		popa
-		jmp movplayer_end
-
-		movplayer_box_ok:
-		popa
-		jmp movplayer_move
-
-
-
-	;Check current tile
-	movplayer_move:
-	mov cx, [player_pos]
-	call getmapaddr
-	cmp byte [bx], tile_socketplayer
-	je movplayer_move_socket
-	jmp movplayer_move_air
-
-	movplayer_move_air:
-	mov byte [bx], tile_air
-	jmp movplayer_move_place
-	movplayer_move_socket:
-	mov byte [bx], tile_socket
-	jmp movplayer_move_place
-
-	movplayer_move_place:
-	mov [player_pos], dx
-	mov cx, dx
-	call getmapaddr
-	cmp byte [bx], tile_socket
-	je movplayer_move_place_socket
-	jmp movplayer_move_place_air
-
-	movplayer_move_place_air:
-	mov byte [bx], tile_player
-	jmp movplayer_end
-	movplayer_move_place_socket:
-	mov byte [bx], tile_socketplayer
-	jmp movplayer_end
-
-	movplayer_end:
+	movplayer_move_place:						;Place a new player tile on destination field
+	mov [player_pos], dx						;Update player position
+	mov cx, dx									;
+	call getmapaddr								;Get destination field address
+	cmp byte [bx], tile_socket					;If destination tile is socket
+	je movplayer_move_place_socket				;Place a socketplayer
+	jmp movplayer_move_place_air				;Else place a normal player
+	movplayer_move_place_air:					;Place air
+	mov byte [bx], tile_player					;
+	jmp movplayer_end							;Go to the end of movement routine
+	movplayer_move_place_socket:				;Place socketplayer
+	mov byte [bx], tile_socketplayer			;
+	jmp movplayer_end							;Go to the end of movement routine
+	movplayer_end:								;The end
 	popa
 	popf
 	ret
-	movplayer_delta: dw 0
-	movplayer_box_position:
-	movplayer_dest: dw 0
-	movplayer_box_dest: dw 0
-	movplayer_box_tile: db 0
+	movplayer_delta: dw 0						;The requested delta
+	movplayer_box_position:						;Current box position
+	movplayer_dest: dw 0						;Player destination
+	movplayer_box_dest: dw 0					;Box destination
 
 ;Return requested map field address
 ;cl - x position
