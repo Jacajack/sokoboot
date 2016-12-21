@@ -1,100 +1,58 @@
 [org 0x700]
 
-;DEBUG
-;asd:
-;call kbget
-;call kbhandle
-;call puthex
-;mov al, ah
-;call puthex
-;jmp asd
-;dsa:
-
 ;First of all, enter 13h graphics mode
 mov al, 0x13
 mov ah, 0x0
 int 0x10
 
-;TODO HERE:
-;Check inputs
-
-
-;mov cl, 11
-;mov ch, 7
-;call putplayer
+;Find player on the map
 call findplayer
 
-
-myloop:
-
+;Draw map for the first time
 mov cl, 0
 mov ch, 32
 mov dl, 0
 mov dh, 20
 call drawmap
+
+;Gameloop
+gameloop:
 call getc
-
-;call puthex
-
-;jmp myloop
-
-;mov cl, 1
-;mov ch, 0
-;call movplayer
-;jmp myloop
-
-push ax
-cmp al, 'a'
-mov cl, -1
-mov ch, 0
-je ok
-
-cmp al, 'd'
-mov cl, 1
-mov ch, 0
-je ok
-
-cmp al, 'w'
-mov cl, 0
-mov ch, -1
-je ok
-
-cmp al, 's'
-mov cl, 0
-mov ch, 1
-je ok
-
-mov cx, 0
-
-
-ok:
-pop ax
-
-call movplayer
-jmp myloop
+call kbaction
+jmp gameloop
 jmp $
 
-;Fetch keystroke (without waiting)
-;return al - ASCII code
-;return ah - BIOS scancode
-kbget:
+;Manage ingame key actions
+;ax - ASCII code and scancode
+kbaction:
+	pushf
 	pusha
-	mov al, 0x00					;Check if there's any character in buffer
-	mov ah, 0x01					;
-	int 0x16						;Check for key in buffer
-	jnz kbget_abort					;If not, abort
-	mov al, 0x00					;Get character
-	mov ah, 0x00					;
-	int 0x16						;Get key
-	mov [kbget_key], ax				;Store key
-	popa							;Pop all registers
-	mov ax, [kbget_key]				;Restore key
-	ret								;
-	kbget_abort:					;
-	popa							;Pop all registers
-	mov ax, 0						;Return 0
+	cmp al, 'a'						;Player - move left
+	mov cl, -1						;
+	mov ch, 0						;
+	je kbaction_match				;
+	cmp al, 'd'						;Player - move right
+	mov cl, 1						;
+	mov ch, 0						;
+	je kbaction_match				;
+	cmp al, 'w'						;Player - move up
+	mov cl, 0						;
+	mov ch, -1						;
+	je kbaction_match				;
+	cmp al, 's'						;Player - move down
+	mov cl, 0						;
+	mov ch, 1						;
+	je kbaction_match
+	kbaction_match:
+	call movplayer
+	mov cl, 0
+	mov ch, 32
+	mov dl, 0
+	mov dh, 20
+	call drawmap
+	popa
+	popf
 	ret
-	kbget_key: dw 0					;Key read
 
 ;Fetch keystroke (wait)
 ;return al - ASCII code
@@ -213,29 +171,29 @@ drawmap:
 
 ;Finds player on map and stores position in player_pos
 findplayer:
-	pushf
-	pusha
-	mov cl, 0
-	findplayer_l1:
-		mov ch, 0
-		findplayer_l2:
-			call getmapaddr
-			mov al, byte [bx]
-			cmp al, tile_player
-			je findplayer_found
-			cmp al, tile_socketplayer
-			je findplayer_found
-			inc ch
-			cmp ch, 20
-			jle findplayer_l2
-		inc cl
-		cmp cl, 32
-		jle findplayer_l1
-	jmp findplayer_end
-	findplayer_found:
-	mov [player_pos], cx
-	findplayer_end:
-	popa
+	pushf									;Pusha all registers
+	pusha									;
+	mov cl, 0								;Reset horizontal counter
+	findplayer_l1:							;Horizontal loop
+		mov ch, 0							;Reset vertical counter
+		findplayer_l2:						;Vertical loop
+			call getmapaddr					;Get current map address
+			mov al, byte [bx]				;Get current field content
+			cmp al, tile_player				;Is the field player
+			je findplayer_found				;If so, jump to match routine
+			cmp al, tile_socketplayer		;Is the field socketplayer
+			je findplayer_found				;If so, jump to match routine
+			inc ch							;Increment vertical counter
+			cmp ch, 20						;Vertical loop limit
+			jle findplayer_l2				;Vertical loop jump
+		inc cl								;Increment horizontal loop counter
+		cmp cl, 32							;Horizontal loop limit
+		jle findplayer_l1					;Horizontal loop jump
+	jmp findplayer_end						;If no match, go to the end
+	findplayer_found:						;Match subroutine
+	mov [player_pos], cx					;Move counters value into player_pos
+	findplayer_end:							;The end
+	popa									;Pop all registers
 	popf
 	ret
 
@@ -404,3 +362,6 @@ map:			;Map data
 
 %include "sprites.asm"
 %include "puthex.asm"
+
+;Pad out to 16 sectors
+times (16 * 512) - ($ - $$) db 0
