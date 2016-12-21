@@ -79,21 +79,32 @@ call drawmap
 jmp myloop
 jmp $
 
-;Fetch keystroke
+;Fetch keystroke (without waiting)
 ;return al - ASCII code
-;return ah - BIOS keycode
+;return ah - BIOS scancode
 kbget:
-	mov al, 0						;Check if there's any character in buffer
+	pusha
+	mov al, 0x00					;Check if there's any character in buffer
 	mov ah, 0x01					;
-	int 0x16						;
+	int 0x16						;Check for key in buffer
 	jnz kbget_abort					;If not, abort
-	mov al, 0						;Get character
+	mov al, 0x00					;Get character
 	mov ah, 0x00					;
-	int 0x16						;
+	int 0x16						;Get key
+	mov [kbget_key], ax				;Store key
+	popa							;Pop all registers
+	mov ax, [kbget_key]				;Restore key
+	ret								;
+	kbget_abort:					;
+	popa							;Pop all registers
+	mov ax, 0						;Return 0
 	ret
-	kbget_abort:
-	mov ax, 0
-	ret
+	kbget_key: dw 0					;Key read
+
+;Fetch keystroke (wait)
+;return al - ASCII code
+;return ah - BIOS scancode
+getc:
 
 ;Plots a single pixel
 ;al - color
