@@ -7,6 +7,9 @@ mov si, final_s
 call puts
 
 
+jmp 0x700
+jmp $
+
 mov bx, 0
 dots:
 	mov ax, 100
@@ -21,8 +24,7 @@ dots:
 ;That is pretty much useless and will get replaced with splash screen
 ;call gfxtest
 
-jmp 0x700
-jmp $
+
 
 %include "putc.asm"
 %include "puts.asm"
