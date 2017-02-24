@@ -5,10 +5,15 @@ A Sokoban clone bootable from floppy (just write `img` file to floppy disk using
 This is how it looks:<br>
 <img src=https://media.giphy.com/media/26gs98LgOQDNeyduo/source.gif></img>
 
-
 TODO:
   - [x] - game engine
   - [x] - scene rendering
   - [ ] - menus
   - [ ] - loading levels
   - [ ] - maybe some fancy splash screen?
+
+|Track|Description|
+|:---:|:---:|
+|0|Main menu, splash screen loader, misc. utilities|
+|1 - 8|Splash screen|
+|9|Sokoban game|

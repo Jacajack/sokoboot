@@ -1,4 +1,4 @@
-[org 0x700]
+[org 0x2900]
 
 ;First of all, enter 13h graphics mode
 mov al, 0x13
@@ -405,8 +405,7 @@ map:								;Map data
 	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
-%include "sprites.asm"
-%include "puthex.asm"
+%include "sokoban/sprites.asm"
 
-;Pad out to 16 sectors
-times (16 * 512) - ($ - $$) db 0
+;Pad out to 18 sectors (single track)
+times (18 * 512) - ($ - $$) db 0

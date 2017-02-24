@@ -1,7 +1,6 @@
 ;Resets chosen disk
 ;dl - drive number
 diskreset:
-
 	pushf
 	pusha
 	mov ah, 0 						;Reset disk
@@ -12,15 +11,15 @@ diskreset:
 
 ;Loads sectors into RAM
 ;al - sectors amount
-;dl - drive number
 ;bx - starting address
 ;cl - starting sector
+;ch - cylinder number
+;dl - drive number
+;dh - head number
 diskload:
 	pushf
 	pusha
 	mov ah, 0x2 					;Sector read operation
-	mov ch, 0 						;Cylinder number
-	mov dh, 0						;Head number
 	int 0x13						;Disk interrupt
 	jc diskload_error
 	popa
@@ -31,4 +30,6 @@ diskload:
 	call puts
 	jmp $
 	diskload_error_s:
-		db 10, 13, '[DISK ERROR]', 10, 13, 0
+		db 10, 13, 'CRITICAL - DISK ERROR', 10, 13, 0
+
+%include "puts.asm"
