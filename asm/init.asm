@@ -33,8 +33,8 @@ jmp $
 splash:
 	pushf
 	pusha
-	mov ax, splash_start_track			;Loading has to start from 1st track
-	splash_l1:
+	mov ax, splash_start_track			;Load first track number
+	splash_l1:							;
 		push ax							;Save counter
 		shl ax, 7						;Shift track number 7 bits to the left
 		shr al, 7						;Get youngest bit
@@ -45,53 +45,40 @@ splash:
 		mov dl, [boot_drive]			;Read from boot drive
 		mov bx, splash_addr				;Read to address pointed by "splash_addr"
 		call diskload					;Call diskload
-		pop ax							;Restore counter
-
-		push ax							;Save counter value
-		mov al, [splash_draw_lock]		;Check if render lock is set
-		cmp al, 1						;
-		je splash_draw_lockset			;If so, consider job done
-		mov bx, 0						;Else, reset byte counter
+		push es							;Push extra segment register
+		mov ax, 0xA000					;Setup extra segment register (to point video memory)
+		mov es, ax						;
+		mov bx, 0						;Reset render counter
 		splash_draw_l1:					;Main render loop
-			cmp bx, 9216				;Byte counter should run 9216 times
-			jge splash_draw_track_end	;If counter value is higher, finish drawing track
-			mov dx, 0					;Get ready for division
-			mov ax, bx					;
-			add ax, [splash_draw_cnt]	;Add global counter value to the current track counter
-			mov cx, 320					;Divide counter value by 340
-			div cx						;
-			mov cx, dx					;Get the reminder as X position
-			mov dx, ax					;Get the quotient as Y position
+			mov ax, bx					;Move bx to ax (to left it untouched)
+			add ax, [splash_draw_cnt]	;Calculate video memory offset
+			cmp ax, 64000				;If whole screen has been drawn, skip one run
+			jae splash_draw_done		;
 			push bx						;Store counter value
-			add bx, splash_addr			;Add splash address to counter value
-			mov al, byte [bx]			;Get splash pixel value
-			mov ah, 0xC					;Put pixel function
-			int 0x10					;Graphics interrupt call
+			mov ax, [bx+splash_addr]	;Get splash byte
+			add bx, [splash_draw_cnt]	;Get total video memory offset
+			mov [es:bx], al				;Write data loaded from floppy directly to video memory
 			pop bx						;Restore counter value
-			inc bx						;Increment counter
-			cmp cx, 319					;Check if last X pixel is being drawn
-			jne splash_draw_l1			;If no, continue execution
-			cmp dx, 199					;Check if last Y pixel is being drawn
-			jne splash_draw_l1			;If no, continue execution
-			jmp splash_draw_lockset		;Else, consider job done
-		splash_draw_track_end:			;
-		mov bx, 9216					;Increment global counter by 9216 (track size)
-		add [splash_draw_cnt], bx		;
-		jmp splash_draw_end				;Jump to the end
-		splash_draw_lockset:			;Set up render lock
-		mov al, 1						;
-		mov [splash_draw_lock], al		;
-		splash_draw_end:				;
+			inc bx						;Increment render counter
+			cmp bx, 9216				;Render counter should run 9216 each track
+			jbe splash_draw_l1			;
+		mov dx, 9216					;Update base video memory offset
+		add [splash_draw_cnt], dx		;
+		jmp splash_draw_end				;Go to the end of rendering part
+		splash_draw_done:				;Only executed when whole screen is drawn
+		mov ax, bx						;Get video memory base offset to point end of it
+		add ax, [splash_draw_cnt]		;
+		mov [splash_draw_cnt], ax		;
+		splash_draw_end:				;Rendering ends here
+		pop es							;Restore extra segment register
 		pop ax							;Restore track counter
-
 		inc ax							;Increment loop counter
-		cmp ax, splash_end_track		;Loop boundary (read 8 tracks)
-		jle splash_l1					;Loop conditional jump
+		cmp ax, splash_end_track		;Loop boundary
+		jbe splash_l1					;Loop conditional jump
 	popa
 	popf
 	ret
 	splash_draw_cnt: dw 0
-	splash_draw_lock: db 0
 	splash_addr equ 0x2900
 	splash_start_track equ 1
 	splash_end_track equ 8
