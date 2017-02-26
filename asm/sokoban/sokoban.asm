@@ -1,4 +1,4 @@
-[org 0x700]
+[org 0x2900]
 
 ;First of all, enter 13h graphics mode
 mov al, 0x13
@@ -80,26 +80,35 @@ putpixel:
 	popf
 	ret
 
-;Draw sprite on screen
+;Draw sprite on screen (still can be optimized)
 ;bx - sprite address
 ;cx - x position
 ;dx - y position
 drawsprite:
 	pushf
 	pusha
+	push es
 	mov [drawsprite_x], cx 			;Store offset
 	mov [drawsprite_y], dx 			;Store offset
+	mov ax, 0xA000					;Setup extra segment register
+	mov es, ax						;
 	mov dx, 0 						;Vertical (slower) loop
 	drawsprite_l1:					;
 		mov cx, 0					;
 		drawsprite_l2: 				;Horizontal (faster loop)
-			;inc cx					;Increment horizontal counter
 			push cx					;Store counter value
 			push dx					;Store counter value
 			add cx, [drawsprite_x] 	;Add offset
 			add dx, [drawsprite_y] 	;Add offset
 			mov ax, [bx] 			;Fetch color
-			call putpixel			;Draw pixel
+			push bx					;Save source address register
+			mov bx, dx				;Calculate offset in video memory
+			shl bx, 6				;
+			shl dx, 8				;
+			add bx, dx				;
+			add bx, cx				;
+			mov [es:bx], al			;Write directly to video memory
+			pop bx					;Restore source address register
 			pop dx					;Restore counter value
 			pop cx					;Restore counter value
 			inc bx					;Increment pixel counter
@@ -108,7 +117,8 @@ drawsprite:
 			jne drawsprite_l2		;
 		inc dx						;Increment vertical counter
 		cmp dx, 10					;Vertical loop boundary
-		jne drawsprite_l1
+		jne drawsprite_l1			;
+	pop es							;Restore extra segment register
 	popa
 	popf
 	ret
@@ -405,8 +415,7 @@ map:								;Map data
 	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
-%include "sprites.asm"
-%include "puthex.asm"
+%include "sokoban/sprites.asm"
 
-;Pad out to 16 sectors
-times (16 * 512) - ($ - $$) db 0
+;Pad out to 18 sectors (single track)
+times (18 * 512) - ($ - $$) db 0
