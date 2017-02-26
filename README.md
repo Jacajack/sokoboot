@@ -10,7 +10,7 @@ TODO:
   - [x] - scene rendering
   - [ ] - menus
   - [ ] - loading levels
-  - [ ] - maybe some fancy splash screen?
+  - [x] - maybe some fancy splash screen?
 
 |Track|Description|
 |:---:|:---:|
