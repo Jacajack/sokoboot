@@ -11,9 +11,3 @@ TODO:
   - [ ] - menus
   - [ ] - loading levels
   - [x] - maybe some fancy splash screen?
-
-|Track|Description|
-|:---:|:---:|
-|0|Main menu, splash screen loader, misc. utilities|
-|1 - 8|Splash screen|
-|9|Sokoban game|
