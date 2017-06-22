@@ -43,9 +43,11 @@ kbaction:
 	mov cl, 0						;
 	mov ch, 1						;
 	je kbaction_match				;
+	jmp kbaction_end				;No match
 	kbaction_match:					;
 	call movplayer					;Move player
 	call drawstack_draw				;Redraw only necessary tiles
+	kbaction_end:
 	popa
 	popf
 	ret
