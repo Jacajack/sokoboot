@@ -10,17 +10,17 @@ int 0x10
 
 ;Load splash screen
 pusha
-push es
-mov bx, 0xA000
-mov es, bx
-mov al, 125
-mov bx, 0
-mov cl, 1
-mov ch, 0
-mov dh, 1
-mov dl, [boot_drive]
-call diskload
-pop es
+push es					;Store extra segment register
+mov bx, 0xA000			;Load es through bx
+mov es, bx				;
+mov al, 125				;We're going to read 125 sectors (320x240/512)
+mov bx, 0				;Reset memory pointer
+mov ch, 0				;Cylinder - 0
+mov dh, 1				;Head - 1
+mov cl, 1				;Sector - 1
+mov dl, [boot_drive]	;Set drive number
+call diskload			;Load data from disk
+pop es					;Restore segment register	
 popa
 
 ;Wait for a keypress
