@@ -9,19 +9,7 @@ mov ah, 0x0
 int 0x10
 
 ;Load splash screen
-pusha
-push es					;Store extra segment register
-mov bx, 0xA000			;Load es through bx
-mov es, bx				;
-mov al, 125				;We're going to read 125 sectors (320x240/512)
-mov bx, 0				;Reset memory pointer
-mov ch, 0				;Cylinder - 0
-mov dh, 1				;Head - 1
-mov cl, 1				;Sector - 1
-mov dl, [boot_drive]	;Set drive number
-call diskload			;Load data from disk
-pop es					;Restore segment register	
-popa
+call splashload
 
 ;Wait for a keypress
 mov al, 0x00
@@ -41,6 +29,29 @@ call diskload
 jmp 0x2900
 
 jmp $
+
+splashload:
+	pushf
+	pusha
+	push es									;Store extra segment register
+	mov dl, [boot_drive]					;Set drive number
+	mov dh, 1								;Read 1 sector each time
+	mov bx, 0xA000							;Load es through bx
+	mov es, bx								;Setup segment register to point video memory
+	mov bx, 0								;Reset offset register
+	mov ax, splash_sector					;We start reading at sector 18
+	splash_l:								;Loop
+		call diskloadlba					;Load data from disk
+		add bx, 512							;Increment memory pointer
+		inc ax								;Increment sector pointer
+		cmp ax, splash_sector+splash_len	;We want to read 125 sectors
+		jbe splash_l						;Loop
+	pop es									;Restore segment register
+	popa
+	popf
+	ret
+	splash_sector equ 18
+	splash_len equ 125
 
 boot_drive: db 0
 
