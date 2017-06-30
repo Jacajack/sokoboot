@@ -5,8 +5,6 @@
 mov [boot_drive], dl
 
 ;Stack init
-mov ax, 0x8fc0
-mov ss, ax
 mov bp, 0xffff
 mov sp, bp
 
