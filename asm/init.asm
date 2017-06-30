@@ -55,7 +55,7 @@ splashload:
 
 boot_drive: db 0
 
-%include "diskutils.asm"
+%include "disk.asm"
 
 ;Pad out to whole track (-boot sector)
 times (17 * 512) - ($ - $$) db 0
