@@ -25,7 +25,7 @@ mov cl, 1
 mov al, 18
 mov dl, [boot_drive]
 mov bx, 0x2900
-call diskload
+call diskrchs
 jmp 0x2900
 
 jmp $
@@ -41,7 +41,7 @@ splashload:
 	mov bx, 0								;Reset offset register
 	mov ax, splash_sector					;We start reading at sector 18
 	splash_l:								;Loop
-		call diskloadlba					;Load data from disk
+		call diskrlba						;Load data from disk
 		add bx, 512							;Increment memory pointer
 		inc ax								;Increment sector pointer
 		cmp ax, splash_sector+splash_len	;We want to read 125 sectors

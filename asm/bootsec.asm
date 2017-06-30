@@ -18,7 +18,7 @@ mov cl, 2				;First sector = 2
 mov ch, 0				;Track = 0
 mov dh, 0				;Head = 0
 mov bx, 0x500			;Set destination
-call diskload
+call diskrchs
 
 ;Boot drive ID is left behind in dl
 mov dl, [boot_drive]
