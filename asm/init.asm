@@ -67,7 +67,7 @@ splashload:
 	splash_sector equ 18
 	splash_len equ 125
 	splash_memaddr equ 0xf000
-	splash_memseg equ 0x5000
+	splash_memseg equ 0x0000
 
 boot_drive: db 0
 
