@@ -14,5 +14,5 @@ puthexw:
 	popf
 	ret
 
-%include "puthexb.asm"
+%include "stdio/puthexb.asm"
 %endif
