@@ -2,7 +2,7 @@
 import sys
 import math
 import os
-import Image
+from PIL import Image
 
 image = Image.open( "splash.png" );
 image = image.convert( "RGB" );
