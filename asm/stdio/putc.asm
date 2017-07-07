@@ -1,3 +1,6 @@
+%ifndef STDIO_PUTC
+%define STDIO_PUTC
+
 ;Print single character on screen
 ;al - character to print
 putc:
@@ -8,3 +11,5 @@ putc:
 	popa
 	popf
 	ret
+
+%endif

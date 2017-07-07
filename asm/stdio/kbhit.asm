@@ -1,3 +1,6 @@
+%ifndef STDIO_KBHIT
+%define STDIO_KBHIT
+
 ;Fetch keystroke (wait)
 ;return al - 0 if keyboard buffer is empty
 kbhit:
@@ -19,3 +22,5 @@ kbhit:
 	popf
 	ret
 	kbhit_b: db 0
+
+%endif

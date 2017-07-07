@@ -1,3 +1,6 @@
+%ifndef STDIO_CLS
+%define STDIO_CLS
+
 ;Clear screen in text mode
 cls:
 	pushf
@@ -8,3 +11,5 @@ cls:
 	popa
 	popf
 	ret
+
+%endif

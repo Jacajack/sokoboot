@@ -1,3 +1,6 @@
+%ifndef STDIO_GETC
+%define STDIO_GETC
+
 ;Fetch keystroke (wait)
 ;return al - ASCII code
 ;return ah - BIOS scancode
@@ -13,3 +16,5 @@ getc:
 	mov ax, [getc_key]		;Get key into register
 	ret
 	getc_key: dw 0
+
+%endif

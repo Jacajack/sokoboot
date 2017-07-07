@@ -1,3 +1,6 @@
+%ifndef STDIO_PUTS
+%define STDIO_PUTS
+
 ;Print null terminated string on screen
 ;si - string address
 puts:
@@ -15,3 +18,5 @@ puts:
 	popa
 	popf
 	ret
+
+%endif

@@ -1,3 +1,6 @@
+%ifndef STDIO_GOTEXT
+%define STDIO_GOTEXT
+
 ;Switch to text mode if it isn't currently enabled
 gotext:
 	pushf
@@ -14,3 +17,5 @@ gotext:
 	popa
 	popf
 	ret
+	
+%endif
