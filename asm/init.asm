@@ -67,11 +67,11 @@ splashload:
 	splash_sector equ 18
 	splash_len equ 125
 	splash_memaddr equ 0xf000
-	splash_memseg equ 0x0000
+	splash_memseg equ 0x5000
 
 boot_drive: db 0
 
-%include "disk.asm"
+%include "diskutils.asm"
 
 ;Pad out to whole track (-boot sector)
 times (17 * 512) - ($ - $$) db 0
