@@ -1,1 +1,4 @@
 split
+bin
+*.bin
+*.img
