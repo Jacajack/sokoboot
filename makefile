@@ -6,7 +6,7 @@ all: before splash
 	dd status=noxfer conv=notrunc if=bin/sokoboot.bin of=sokoboot.img
 
 splash: before
-	cd splash && python img2bin.py > splash.bin
+	./img2bin.py splash/splash.png > splash/splash.bin
 	dd if=/dev/zero of=splash/splash.bin bs=1 count=0 seek=73728
 
 

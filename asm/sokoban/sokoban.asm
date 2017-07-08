@@ -5,6 +5,9 @@ mov al, 0x13
 mov ah, 0x0
 int 0x10
 
+;Setup color palette
+call palsetup
+
 ;Find player on the map
 call findplayer
 
@@ -417,7 +420,16 @@ map:								;Map data
 	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
-%include "sokoban/sprites.asm"
+%include "gfxutils.asm"
+
+tile_air equ 0
+tile_wall equ 1
+tile_box equ 2
+tile_socket equ 3
+tile_socketbox equ 4
+tile_player equ 5
+tile_socketplayer equ 6
+sprites:
 
 ;Pad out to 18 sectors (single track)
-times (18 * 512) - ($ - $$) db 0
+;times (18 * 512) - ($ - $$) db 0
