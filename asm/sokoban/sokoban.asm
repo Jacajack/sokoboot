@@ -43,6 +43,10 @@ kbaction:
 	mov cl, 0						;
 	mov ch, 1						;
 	je kbaction_match				;
+	cmp al, 'r'						;Game - restart
+	mov cl, 0						;
+	mov ch, 1						;
+	je restart						;
 	jmp kbaction_end				;No match
 	kbaction_match:					;
 	call movplayer					;Move player
@@ -227,6 +231,14 @@ drawstack_draw:
 	popf
 	ret
 
+;Restart game without rebooting computer
+restart:
+	pusha
+	pushf
+	int 0x19
+	popa
+	popf
+	ret
 ;Finds player on map and stores position in player_pos
 findplayer:
 	pushf									;Pusha all registers
