@@ -2,3 +2,4 @@ split
 bin
 *.bin
 *.img
+*.map
