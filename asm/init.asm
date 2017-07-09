@@ -2,6 +2,7 @@
 
 ;Get boot drive ID passed by bootloader
 mov [boot_drive], dl
+push dx
 
 ;Enter 13h graphics mode to draw splash screen
 mov al, 0x13
@@ -16,7 +17,6 @@ call splashload
 mov al, 0x00
 mov ah, 0x00
 int 0x16
-
 
 ;SOME MENU HERE
 ;FOR NOW, JUST LOAD THE GAME
@@ -77,3 +77,4 @@ boot_drive: db 0
 
 ;Pad out to whole track (-boot sector)
 times (17 * 512) - ($ - $$) db 0
+incbin "../resources/splash.bin"

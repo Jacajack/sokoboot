@@ -1,22 +1,37 @@
-all: before splash
-	cd asm && make all
-	cp splash/splash.bin bin/002-splash.bin
-	cd bin && cat *.bin | sponge > sokoboot.bin
+all: clean force bin/sokoboot.bin
 	cd bin && cp sokoboot.bin ..
 	dd status=noxfer conv=notrunc if=bin/sokoboot.bin of=sokoboot.img
 
-splash: before
-	./img2bin.py splash/splash.png > splash/splash.bin
-	dd if=/dev/zero of=splash/splash.bin bs=1 count=0 seek=73728
+bin/sokoboot.bin: bin/000-bootsec.bin bin/001-init.bin bin/002-sokoban.bin resources/levels.bin
+	cat $^ > bin/sokoboot.bin
 
+bin/000-bootsec.bin:
+	cd asm && nasm bootsec.asm -f bin -o ../bin/000-bootsec.bin
+
+bin/001-init.bin: resources/splash.bin
+	cd asm && nasm init.asm -f bin -o ../bin/001-init.bin
+
+bin/002-sokoban.bin: resources/sprites.bin
+	cd asm && nasm sokoban.asm -f bin -o ../bin/002-sokoban.bin
+
+resources/splash.bin:
+	./img2bin.py resources/splash.png > resources/splash.bin
+	dd if=/dev/zero of=resources/splash.bin bs=1 count=0 seek=73728
+
+resources/sprites.bin:
+	./img2bin.py resources/sprites.png > resources/sprites.bin
+
+resources/levels.bin:
+	cd resources && nasm lvl.asm -f bin -o levels.bin
 
 clean:
-	cd asm && make clean
+	-rm -r bin
+	-rm -r split
 	-rm sokoboot.img
-	-rm -rf split
+	-rm sokoboot.bin
 
-before:
-	cd asm && make before
+force:
+	-mkdir bin
 
 rebuild: clean all
 

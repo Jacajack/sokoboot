@@ -418,7 +418,7 @@ lvlload:
 	clc
 	jmp lvlload_end
 	lvlload_bad:
-  	sc
+  	;
   	lvlload_end:
 	popa
 	popf
@@ -445,7 +445,7 @@ tile_socketbox equ 4
 tile_player equ 5
 tile_socketplayer equ 6
 
-sprites: incbin "../resources/sprites.bin"
+sprites: incbin "sprites.bin"
 
 ;Pad out to 18 sectors (single track)
 times (18 * 512) - ($ - $$) db 0
