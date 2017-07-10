@@ -24,6 +24,8 @@ resources/sprites.bin:
 resources/levels.bin:
 	cd resources && nasm lvl.asm -f bin -o levels.bin
 
+resources: resources/levels.bin resources/sprites.bin resources/splash.bin
+
 clean:
 	-rm -r bin
 	-rm -r split

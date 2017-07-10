@@ -1,11 +1,18 @@
 [org 0x2900]
+[map all sokoban.map]
 
 ;Get boot drive number
 pop dx
 mov [boot_drive], dl
 
-mov ax, 180
+mov ax, 324
 call lvlload
+test al, al
+jz xxx
+call gotext
+call puthexb
+jmp $
+xxx:
 
 ;First of all, enter 13h graphics mode
 mov al, 0x13
@@ -61,23 +68,6 @@ kbaction:
 	popa
 	popf
 	ret
-
-
-;Fetch keystroke (wait)
-;return al - ASCII code
-;return ah - BIOS scancode
-getc:
-	pushf							;Push registers
-	pusha							;
-	mov al, 0x00					;Get character
-	mov ah, 0x00					;
-	int 0x16						;Call interrupt
-	mov [getc_key], ax				;Store key in memory
-	popa							;Pop registers
-	popf							;
-	mov ax, [getc_key]				;Get key into register
-	ret
-	getc_key: dw 0
 
 ;Plots a single pixel
 ;al - color
@@ -408,34 +398,57 @@ getmapaddr:
 lvlload:
 	pushf
 	pusha
+	push es
 	mov bx, ds
 	mov es, bx
 	mov bx, lvldata
 	mov dh, 2
 	mov dl, [boot_drive]
 	call diskrlba
+	jc lvlload_end
 
-	clc
-	jmp lvlload_end
-	lvlload_bad:
-  	;
-  	lvlload_end:
+	;Magic number check
+	mov si, lvlload_magic
+	mov di, lvldata_magic
+	mov cx, 8
+	rep cmpsb
+	mov byte [lvlload_error], lvlload_error_magic
+	jnz lvlload_end
+
+	;Check sector amount
+	cmp word [lvldata_sectors], 8 * 18
+	mov byte [lvlload_error], lvlload_error_sector
+	ja lvlload_end
+
+	;Check level size
+	mov ax, 0
+	mov al, [lvldata_width]
+	mov cl, [lvldata_height]
+	mul cl
+	cmp ax, 65536 - 1024
+	mov byte [lvlload_error], lvlload_error_size
+	ja lvlload_end
+
+	mov byte [lvlload_error], lvlload_error_none
+	lvlload_end:
+	pop es
 	popa
 	popf
+	mov al, [lvlload_error]
 	ret
+	lvlload_error: db 0
+	lvlload_magic: db "soko lvl"
+	lvlload_error_none equ 0
+	lvlload_error_disk equ 1
+	lvlload_error_magic equ 2
+	lvlload_error_sector equ 3
+	lvlload_error_size equ 4
 
 boot_drive: db 0
 
-lvldata:
-	lvldata_magic: times 4 db 0
-	lvldata_playerpos: dw 0
-	lvldata_map: times 640 db 0
-	lvldata_name: times 60 db 0
-	lvldata_desc: times 240 db 0
-	lvldata_padding: times 1024 - ( $ - lvldata_map ) db 0
-
 %include "gfxutils.asm"
 %include "diskutils.asm"
+%include "stdio.asm"
 
 tile_air equ 0
 tile_wall equ 1
@@ -445,7 +458,27 @@ tile_socketbox equ 4
 tile_player equ 5
 tile_socketplayer equ 6
 
-sprites: incbin "sprites.bin"
+sprites: incbin "../resources/sprites.bin"
 
-;Pad out to 18 sectors (single track)
-times (18 * 512) - ($ - $$) db 0
+;Pad out to full track
+times 1 * 18 * 512 - ( $ - $$ ) db 0
+
+;Level data can take up to 72KB (8 tracks)
+;Also, make sure that lvldata is located at address divisible by 16
+times 16 - ( ( $ - $$ ) % 16 ) db 0
+lvldata:
+	lvldata_magic: db "soko lvl"
+	lvldata_id: dw 0
+	lvldata_sectors: dw 0
+	lvldata_name: times 80 db 0
+	lvldata_desc: times 320 db 0
+	lvldata_playerpos: db 0, 0
+	lvldata_width: db 0
+	lvldata_height: db 0
+	lvldata_flags: dw 0, 0
+	lvldata_next: dw 0
+	lvldata_reserved: times 1024 - ( $ - lvldata ) db 0
+	lvldata_map: times 65536 - ( $ - lvldata ) db 1
+
+;Pad out to 9 tracks
+times 9 * 18 * 512 - ( $ - $$ ) db 0
