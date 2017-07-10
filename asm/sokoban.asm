@@ -420,10 +420,12 @@ lvlload:
 	pushf
 	pusha
 	push es
+	mov [lvlload_lba], ax
+	
 	mov bx, ds
 	mov es, bx
 	mov bx, lvldata
-	mov dh, 4
+	mov dh, 2
 	mov dl, [boot_drive]
 	call diskrlba
 	jc lvlload_end
@@ -436,19 +438,37 @@ lvlload:
 	mov byte [lvlload_error], lvlload_error_magic
 	jnz lvlload_end
 
-	;Check sector amount
-	cmp word [lvldata_sectors], 8 * 18
-	mov byte [lvlload_error], lvlload_error_sector
-	ja lvlload_end
-
 	;Check level size
-	mov ax, 0
-	mov al, [lvldata_width]
-	mov cl, [lvldata_height]
-	mul cl
-	cmp ax, 65536 - 1024
+	mov ax, [lvldata_width]
+	mov cx, [lvldata_height]
+	mul cx
 	mov byte [lvlload_error], lvlload_error_size
-	ja lvlload_end
+	jo lvlload_end 
+
+	;Calculate needed sectors amount
+	shr ax, 9
+	inc ax
+	add ax, [lvlload_lba]
+	add ax, 2
+	mov [lvlload_endsector], ax
+	mov bx, lvldata_map
+	shr bx, 4
+	mov es, bx
+	mov bx, 0
+	mov dl, [boot_drive]
+	mov dh, 1
+	mov ax, [lvlload_lba]
+	add ax, 2
+	
+	lvlload_loop:
+	call diskrlba
+	add bx, 512
+	inc ax
+	cmp ax, [lvlload_endsector]
+	jbe lvlload_loop
+	
+	mov byte [lvlload_error], lvlload_error_disk
+	jc lvlload_end
 
 	mov byte [lvlload_error], lvlload_error_none
 	lvlload_end:
@@ -457,8 +477,10 @@ lvlload:
 	popf
 	mov al, [lvlload_error]
 	ret
+	lvlload_lba: dw 0
 	lvlload_error: db 0
 	lvlload_magic: db "soko lvl"
+	lvlload_endsector: dw 0
 	lvlload_error_none equ 0
 	lvlload_error_disk equ 1
 	lvlload_error_magic equ 2
@@ -490,12 +512,11 @@ times 16 - ( ( $ - $$ ) % 16 ) db 0
 lvldata:
 	lvldata_magic: db "soko lvl"
 	lvldata_id: dw 0
-	lvldata_sectors: dw 0
 	lvldata_name: times 80 db 0
 	lvldata_desc: times 320 db 0
-	lvldata_playerpos: db 0, 0
-	lvldata_width: db 0
-	lvldata_height: db 0
+	lvldata_playerpos: dw 0, 0
+	lvldata_width: dw 0
+	lvldata_height: dw 0
 	lvldata_flags: dw 0, 0
 	lvldata_next: dw 0
 	lvldata_reserved: times 1024 - ( $ - lvldata ) db 0
