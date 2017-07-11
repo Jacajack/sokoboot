@@ -14,6 +14,15 @@ call puthexb
 jmp $
 xxx:
 
+; mov ax, 5
+; mov cx, 0x13
+; call getmapaddr
+; call debug
+; dec cx
+; call getmapaddr
+; call debug
+; jmp $
+
 ;First of all, enter 13h graphics mode
 mov al, 0x13
 mov ah, 0x0
@@ -26,11 +35,11 @@ call palsetup
 call findplayer
 
 ;Draw whole map for the first time
-mov cl, 0
-mov ch, 0
-mov dl, 32
-mov dh, 20
 call drawmap
+
+;mov ax, 0
+;mov cx, 0
+;call drawtile
 
 ;Gameloop
 gameloop:
@@ -45,25 +54,29 @@ kbaction:
 	pushf
 	pusha
 	cmp al, 'a'						;Player - move left
-	mov cl, -1						;
-	mov ch, 0						;
+	mov dl, 0						;
+	mov dh, 1						;
 	je kbaction_match				;
 	cmp al, 'd'						;Player - move right
-	mov cl, 1						;
-	mov ch, 0						;
+	mov dl, 2						;
+	mov dh, 1						;
 	je kbaction_match				;
 	cmp al, 'w'						;Player - move up
-	mov cl, 0						;
-	mov ch, -1						;
+	mov dl, 1						;
+	mov dh, 0						;
 	je kbaction_match				;
 	cmp al, 's'						;Player - move down
-	mov cl, 0						;
-	mov ch, 1						;
+	mov dl, 1						;
+	mov dh, 2						;
 	je kbaction_match				;
 	jmp kbaction_end				;No match
 	kbaction_match:					;
+	mov ax, [lvldata_playerx]
+	mov cx, [lvldata_playery]
 	call movplayer					;Move player
+	;call findplayer
 	call drawstack_draw				;Redraw only necessary tiles
+	;call drawmap
 	kbaction_end:
 	popa
 	popf
@@ -115,10 +128,10 @@ drawsprite:
 			pop cx					;Restore counter value
 			inc bx					;Increment pixel counter
 			inc cx					;Increment horizontal counter
-			cmp cx, 10				;Horizontal loop boundary
+			cmp cx, sprite_width	;Horizontal loop boundary
 			jne drawsprite_l2		;
 		inc dx						;Increment vertical counter
-		cmp dx, 10					;Vertical loop boundary
+		cmp dx, sprite_height		;Vertical loop boundary
 		jne drawsprite_l1			;
 	pop es							;Restore extra segment register
 	popa
@@ -126,39 +139,37 @@ drawsprite:
 	ret
 	drawsprite_x: dw 0
 	drawsprite_y: dw 0
+	sprite_width equ 16
+	sprite_height equ 16
 
 ;Draws map tile on screen
-;cl - x position
-;ch - y position
+;ax - x position
+;cx - y position
 drawtile:
 	pushf
 	pusha
 	push fs					;Setup segment register - we want to access whole 65536 byte long map as one segment
-	mov ax, lvldata_map		;
-	shr ax, 4				;
-	mov fs, ax				;
-	cmp cl, 32				;Check x boundary
-	jae drawtile_end		;
-	cmp ch, 20				;Check y boundary
-	jae drawtile_end		;
-	mov bx, 0				;Clear map pointer
-	mov bl, ch				;Get row number
-	shl bx, 5				;Multiply row number * 32
-	mov dx, cx				;Add collumn number
-	mov dh, 0				;Get rid of upper part
-	add bx, dx				;Add collumn number
-	mov bx, [fs:bx]			;Fetch map tile
-	mov ax, 100				;Multiply map tile id * 100 (the size of single sprite)
-	mul bl					;
-	mov bx, ax				;
+	mov bx, lvldata_map		;
+	shr bx, 4				;
+	mov fs, bx				;
+
+	push ax
+	mov ax, [lvldata_width]
+	mul cx
+	mov bx, ax
+	pop ax
+	add bx, ax				;Add collumn number
+
+	push ax
+	mov bh, [fs:bx]			;Fetch map tile
+	mov bl, 0
 	add bx, sprites			;Add calculated offset to sprites array base
-	mov dx, cx				;Store position
-	mov al, 10				;Multiply x position * 10
-	mul cl					;
-	mov cx, ax				;
-	mov al, 10				;Multiply y position * 10
-	mul dh					;
-	mov dx, ax				;
+	pop ax
+
+	shl ax, 4
+	shl cx, 4
+	mov dx, cx
+	mov cx, ax
 	call drawsprite			;Draw sprite
 	drawtile_end:
 	pop fs
@@ -167,25 +178,19 @@ drawtile:
 	ret
 
 ;Draws part of map on screen:
-;cl - start x position
-;ch - start y position
-;dl - width
-;dh - height
 drawmap:
 	pushf
 	pusha
-	add dl, cl						;Calculate end x position
-	add dh, ch						;Calculate end y position
-	mov bx, cx						;Store start position
+	mov ax, 0
 	drawmap_l1:						;Vertical loop
-		mov cl, bl					;Reset horizontal counter
+		mov cx, 0					;Reset horizontal counter
 		drawmap_l2: 				;Horizontal loop
 			call drawtile			;Draw map tile
-			inc cl					;Increment counter
-			cmp cl, dl				;Loop boundary
+			inc cx					;Increment counter
+			cmp cx, viewport_h		;Loop boundary
 			jl drawmap_l2			;Loop
-		inc ch						;Increment counter
-		cmp ch, dh					;Loop boundary
+		inc ax						;Increment counter
+		cmp ax, viewport_w			;Loop boundary
 		jl drawmap_l1				;Loop
 	popa
 	popf
@@ -193,20 +198,19 @@ drawmap:
 
 ;Draw stack
 drawstack_sc: dw 0				;Stack counter
-drawstack_bp: times 640 dw 0	;Stack base pointer
+drawstack_bp: times 640 dw 0, 0	;Stack base pointer
 
 ;Push map field address to be drawn
-;cl - x position
-;ch - y position
+;ax - x position
+;cx - y position
 drawstack_push:
 	pushf
 	pusha
 	mov bx, [drawstack_sc]			;Get stack counter
-	shl bx, 1						;Multiply by word size
-	mov [drawstack_bp + bx], cx		;Push new coordinate to stack
-	shr bx, 1						;Get old stack pointer value
-	add bx, 1						;Increment stack pointer
-	mov [drawstack_sc], bx			;Update stack pointer
+	shl bx, 2
+	mov [drawstack_bp + bx + 0], ax	;Push new coordinate to stack
+	mov [drawstack_bp + bx + 2], cx	;Push new coordinate to stack
+	inc word [drawstack_sc]		;Update stack pointer
 	popa
 	popf
 	ret
@@ -215,15 +219,15 @@ drawstack_push:
 drawstack_draw:
 	pushf
 	pusha
-	mov ax, [drawstack_sc]			;Get stack counter value
 	drawstack_draw_l1:				;Main loop
-		cmp ax, 0					;Is stack counter 0 yet?
+		cmp word [drawstack_sc], 0	;Is stack counter 0 yet?
 		je drawstack_draw_end		;If yes - return from loop
-		mov bx, ax					;Get content from stack
-		shl bx, 1					;
-		mov cx, [drawstack_sc + bx]	;
+		dec word [drawstack_sc]		;Decrement stack pointer
+		mov bx, [drawstack_sc]		;Get stack counter value
+		shl bx, 2
+		mov ax, [drawstack_bp + bx + 0]
+		mov cx, [drawstack_bp + bx + 2]
 		call drawtile				;Draw tile at coordinates read from stack
-		dec ax						;Decrement stack pointer
 		jmp drawstack_draw_l1		;Loop
 	drawstack_draw_end:				;
 	mov word [drawstack_sc], 0		;Reset stack pointer
@@ -239,175 +243,280 @@ findplayer:
 	mov ax, lvldata_map						;
 	shr ax, 4								;
 	mov fs, ax								;
-	mov ax, 0								;
-	mov cl, 0								;Reset horizontal counter
+
+;call gotext
+	mov ax, 0								;Reset horizontal counter
 	findplayer_l1:							;Horizontal loop
-		mov ch, 0							;Reset vertical counter
+		mov cx, 0							;Reset vertical counter
 		findplayer_l2:						;Vertical loop
 			call getmapaddr					;Get current map address
-			mov al, byte [fs:bx]			;Get current field content
-			cmp al, tile_player				;Is the field player
+			mov dl, byte [fs:bx]	;Get current field content
+		;	push ax
+			;mov al, dl
+			;call puthexb
+			;pop ax
+
+			cmp dl, tile_player
 			je findplayer_found				;If so, jump to match routine
-			cmp al, tile_socketplayer		;Is the field socketplayer
+			cmp dl, tile_socketplayer
 			je findplayer_found				;If so, jump to match routine
-			inc ch							;Increment vertical counter
-			cmp ch, 20						;Vertical loop limit
-			jle findplayer_l2				;Vertical loop jump
-		inc cl								;Increment horizontal loop counter
-		cmp cl, 32							;Horizontal loop limit
-		jle findplayer_l1					;Horizontal loop jump
+
+			;call puthexw
+			inc cx							;Increment vertical counter
+			cmp cx, [lvldata_height]		;Vertical loop limit
+			jb findplayer_l2				;Vertical loop jump
+
+		inc ax								;Increment horizontal loop counter
+		cmp ax, [lvldata_width]				;Horizontal loop limit
+		jb findplayer_l1					;Horizontal loop jump
 	jmp findplayer_end						;If no match, go to the end
+
+
+
 	findplayer_found:						;Match subroutine
-	mov [lvldata_playerpos], cx				;Move counters value into lvldata_playerpos
+	;call gotext
+	;call puthexw
+	;jmp $
+	mov [lvldata_playerx], ax				;Move counters value into lvldata_playerpos
+	mov [lvldata_playery], cx				;Move counters value into lvldata_playerpos
 	findplayer_end:							;The end
+	;jmp $
 	pop fs
 	popa									;Pop all registers
 	popf
 	ret
 
+
+debug:
+	pushf
+	pusha
+	call gotext
+
+	mov si, debug_nl
+	push ax
+	mov al, 'a'
+	call putc
+	pop ax
+	call puthexw
+	call puts
+
+	mov al, 'b'
+	call putc
+	mov ax, bx
+	call puthexw
+	call puts
+
+	mov al, 'c'
+	call putc
+	mov ax, cx
+	call puthexw
+	call puts
+
+	mov al, 'd'
+	call putc
+	mov ax, dx
+	call puthexw
+	call puts
+
+	popa
+	popf
+	ret
+	debug_nl: db 10, 13, 0
+
+
 ;Moves player around the map
-;cl - x movement
-;ch - y movement
+;ax - x position
+;cx - y position
+;dl - x delta (0-1-2)
+;dh - y delta (0-1-2)
 movplayer:
 	pushf
 	pusha
+
+	push ax
+	push cx
+	push dx
+	push dx
+	mov dh, 0
+	add ax, dx
+	pop dx
+	mov dl, dh
+	mov dh, 0
+	add cx, dx
+	dec ax
+	dec cx
+	pop dx
+	call movtile
+	pop cx
+	pop ax
+	call movtile
+
+	popa
+	popf
+	ret
+
+
+;Moves tiles around the map
+;ax - x position
+;cx - y position
+;dl - x delta (0-1-2)
+;dh - y delta (0-1-2)
+movtile:
+	pushf
+	pusha
 	push fs
-	mov ax, lvldata_map							;Setup segment register in order to access whole map as one segment
-	shr ax, 4									;
-	mov fs, ax									;
-	mov ax, 0									;
-	mov [movplayer_delta], cx					;Store delta
-	mov dx, [lvldata_playerpos]					;Calculate destination
-	push cx										;Order player origin position to be redrawn
-	mov cx, dx									;
-	call drawstack_push							;
-	pop cx										;
-	add dl, cl									;Add delta
-	add dh, ch									;
-	push cx										;Order player destination position to be redrawn
-	mov cx, dx									;
-	call drawstack_push							;
-	pop cx										;
-	mov [movplayer_dest], dx					;Store destination (dx)
-	cmp dl, 32									;Check destination bounds
-	jae movplayer_end							;
-	cmp dh, 20									;
-	jae movplayer_end							;
-	push cx										;Get player destination field address
-	mov cx, dx									;
-	call getmapaddr								;
-	pop cx										;
+	mov bx, lvldata_map
+	shr bx, 4
+	mov fs, bx
+	mov bx, 0
 
-	cmp byte [fs:bx], tile_wall					;Check if destination is a wall
-	je movplayer_end							;If so, do not allow move
-	cmp byte [fs:bx], tile_box					;Check if destination is a box
-	je movplayer_box							;If so, move box first
-	cmp byte [fs:bx], tile_socketbox			;Check if destination is a socketbox
-	je movplayer_box							;If so, move box first
-	jmp movplayer_move
+	;call gotext
+	;call puthexw
 
-	movplayer_box:								;The box moving routine - Ha, ha, charade you aaareee!
-		pusha									;Store all registers
-		mov cx, [movplayer_delta]				;Get player movement direction
-		mov dx, [movplayer_box_position]		;Get box position
-		mov ax, dx								;Add delta to box position to get box destination
-		add al, cl								;
-		add ah, ch								;
-		mov [movplayer_box_dest], ax			;Store box destination
-		cmp al, 32								;Check box destination bounds
-		jae movplayer_box_abort					;If it exceeds bounds, abort
-		cmp ah, 20								;
-		jae movplayer_box_abort					;
-		mov cx, [movplayer_box_dest]			;Get box destination field address
-		call drawstack_push						;Order box destination field to be redrawn
-		call getmapaddr							;
-		cmp byte [fs:bx], tile_socket			;Check if destination is a socket
-		je movplayer_box_socket					;If so, jump to socketbox placing routine
-		cmp byte [fs:bx], tile_air				;Check if destination is a wall
-		je movplayer_box_air					;If so, jump to box placing routine
-		jmp movplayer_box_abort					;If destination isn't one of these, abort move
-		movplayer_box_socket:					;Destination tile is socket
-		mov byte [fs:bx], tile_socketbox		;Place a socketbox
-		jmp movplayer_box_grab					;Proceed to destroy old box
-		movplayer_box_air:						;Destination tile is air
-		mov byte [fs:bx], tile_box				;Place a box
-		jmp movplayer_box_grab					;Proceed to destroy old box
+	;mov dx, 0x0100
 
-		movplayer_box_grab:						;Replace old box with something different
-		mov cx, [movplayer_box_position]		;Get current box position
-		call getmapaddr							;Get current box field address
-		mov dl, byte [fs:bx]					;Check what current box looks like
-		cmp dl, tile_socketbox					;If it's a socketbox, leave a socket
-		je movplayer_box_leave_socket			;
-		jmp movplayer_box_leave_air				;Otherwise, leave air
-		movplayer_box_leave_socket:				;Leave socket
-		mov byte [fs:bx], tile_socket			;Place socket on old box position
-		jmp movplayer_box_ok					;Box movement is successfull
-		movplayer_box_leave_air:				;Leave air
-		mov byte [fs:bx], tile_air				;Place air on old box position
-		jmp movplayer_box_ok					;Box movement is successfull
-		movplayer_box_abort:					;Movement insuccessfull
-		popa									;Restore all registers
-		jmp movplayer_end						;Jump to the end of player movement routine
-		movplayer_box_ok:						;Movement successfull
-		popa									;Restore all registers
-		jmp movplayer_move						;Return to player movement routine
+	mov [movtile_srcx], ax
+	mov [movtile_srcy], cx
 
-	movplayer_move:								;Check how plauer look right now
-	mov cx, [lvldata_playerpos]					;Get player position
-	call getmapaddr								;Get current player field address
-	cmp byte [fs:bx], tile_socketplayer			;If player stands on socket, call socketplayer move routine
-	je movplayer_move_socket					;
-	jmp movplayer_move_air						;Else, call normal player move routine
-	movplayer_move_air:							;Player stands on normal field
-	mov byte [fs:bx], tile_air					;Replace player with air
-	jmp movplayer_move_place					;Go to place routine
-	movplayer_move_socket:						;Player stands on socket
-	mov byte [fs:bx], tile_socket				;Replace player with socket
-	jmp movplayer_move_place					;Go to place routine
+	call getmapaddr
+	mov bl, [fs:bx]
+	;call debug
+	mov [movtile_src], bl
 
-	movplayer_move_place:						;Place a new player tile on destination field
-	mov [lvldata_playerpos], dx					;Update player position
-	mov cx, dx									;
-	call getmapaddr								;Get destination field address
-	cmp byte [fs:bx], tile_socket				;If destination tile is socket
-	je movplayer_move_place_socket				;Place a socketplayer
-	jmp movplayer_move_place_air				;Else place a normal player
-	movplayer_move_place_air:					;Place air
-	mov byte [fs:bx], tile_player				;
-	jmp movplayer_end							;Go to the end of movement routine
-	movplayer_move_place_socket:				;Place socketplayer
-	mov byte [fs:bx], tile_socketplayer			;
-	jmp movplayer_end							;Go to the end of movement routine
-	movplayer_end:								;The end
+	push dx
+	mov dh, 0
+	add ax, dx
+	jc movtile_end
+	pop dx
+
+	mov dl, dh
+	mov dh, 0
+	add cx, dx
+	jc movtile_end
+
+	sub cx, 1
+	jc movtile_end
+
+	sub ax, 1
+	jc movtile_end
+
+	cmp ax, [lvldata_width]
+	jae movtile_end
+	cmp cx, [lvldata_height]
+	jae movtile_end
+
+
+
+	mov [movtile_destx], ax
+	mov [movtile_desty], cx
+	call getmapaddr
+	;call debug
+	mov bl, [fs:bx]
+	mov [movtile_dest], bl
+
+
+	mov al, [movtile_src]
+	mov ah, [movtile_dest]
+
+	;call puthexw
+
+	;call gotext
+	;call puthexw
+
+	mov bx, 0
+	movtile_l:
+		cmp bx, movtile_allowed_cnt * 4
+		jae movtile_end
+
+		; push ax
+		; ;mov ax, [bx + movtile_allowed]
+		; call puthexw
+		; mov al, 10
+		; call putc
+		; pop ax
+
+		cmp ax, [bx + movtile_allowed]
+		je movtile_move
+
+		add bx, 4
+		jmp movtile_l
+
+	movtile_move:
+	mov dx, [bx + movtile_allowed + 2]
+	mov ax, [movtile_srcx]
+	mov cx, [movtile_srcy]
+	call drawstack_push
+	call getmapaddr
+	mov [fs:bx], byte dl
+	mov ax, [movtile_destx]
+	mov cx, [movtile_desty]
+	call drawstack_push
+	call getmapaddr
+	mov [fs:bx], dh
+
+	cmp byte [movtile_src], tile_player
+	je movtile_update_player
+	cmp byte [movtile_src], tile_socketplayer
+	je movtile_update_player
+	jmp movtile_end
+
+	movtile_update_player:
+	mov ax, [movtile_destx]
+	mov [lvldata_playerx], ax
+	mov ax, [movtile_desty]
+	mov [lvldata_playery], ax
+
+	movtile_end:
+
+
 	pop fs
 	popa
 	popf
 	ret
-	movplayer_delta: dw 0						;The requested delta
-	movplayer_box_position:						;Current box position
-	movplayer_dest: dw 0						;Player destination
-	movplayer_box_dest: dw 0					;Box destination
+	movtile_src: db 0
+	movtile_dest: db 0
+	movtile_srcx: dw 0
+	movtile_srcy: dw 0
+	movtile_destx: dw 0
+	movtile_desty: dw 0
+
+	movtile_allowed:
+		db tile_player, tile_socket
+			db tile_air, tile_socketplayer
+		db tile_player, tile_air
+			db tile_air, tile_player
+		db tile_socketplayer, tile_air
+			db tile_socket, tile_player
+		db tile_socketplayer, tile_socket
+			db tile_socket, tile_socketplayer
+		db tile_box, tile_air
+			db tile_air, tile_box
+		db tile_box, tile_socket
+			db tile_air, tile_socketbox
+		db tile_socketbox, tile_air
+			db tile_socket, tile_box
+		db tile_socketbox, tile_socket
+			db tile_socket, tile_socketbox
+	movtile_allowed_cnt equ 8
+
 
 ;Return requested map field address
-;cl - x position
-;ch - y position
+;ax - x position
+;cx - y position
 ;return bx - address
 getmapaddr:
 	pushf
 	pusha
-	push fs
-	mov ax, lvldata_map
-	shr ax, 4
-	mov fs, ax
-	mov ax, 0
-	mov bx, 0						;Clear address register
-	mov bl, ch						;Insert y position
-	shl bx, 5						;Multiply y position * 32
-	mov ch, 0						;
-	add bx, cx						;Add x position
+	mov bx, cx						;Insert y position
+	push ax
+	mov dx, 0
+	mov ax, [lvldata_width]
+	mul bx
+	mov bx, ax
+	;jo $
+	pop ax
+	add bx, ax						;Add x position
 	mov [getmapaddr_addr], bx		;Temporarily store address in memory
-	pop fs
 	popa							;
 	popf							;
 	mov bx, [getmapaddr_addr]		;Get address back from memory
@@ -421,7 +530,7 @@ lvlload:
 	pusha
 	push es
 	mov [lvlload_lba], ax
-	
+
 	mov bx, ds
 	mov es, bx
 	mov bx, lvldata
@@ -443,7 +552,7 @@ lvlload:
 	mov cx, [lvldata_height]
 	mul cx
 	mov byte [lvlload_error], lvlload_error_size
-	jo lvlload_end 
+	jo lvlload_end
 
 	;Calculate needed sectors amount
 	shr ax, 9
@@ -459,14 +568,14 @@ lvlload:
 	mov dh, 1
 	mov ax, [lvlload_lba]
 	add ax, 2
-	
+
 	lvlload_loop:
 	call diskrlba
 	add bx, 512
 	inc ax
 	cmp ax, [lvlload_endsector]
 	jbe lvlload_loop
-	
+
 	mov byte [lvlload_error], lvlload_error_disk
 	jc lvlload_end
 
@@ -501,6 +610,9 @@ tile_socketbox equ 4
 tile_player equ 5
 tile_socketplayer equ 6
 
+viewport_w equ 20
+viewport_h equ 12
+
 sprites: incbin "../resources/sprites.bin"
 
 ;Pad out to full track
@@ -514,9 +626,12 @@ lvldata:
 	lvldata_id: dw 0
 	lvldata_name: times 80 db 0
 	lvldata_desc: times 320 db 0
-	lvldata_playerpos: dw 0, 0
+	lvldata_playerx: dw 0
+	lvldata_playery: dw 0
 	lvldata_width: dw 0
 	lvldata_height: dw 0
+	lvldata_camx: dw 0
+	lvldata_camy: dw 0
 	lvldata_flags: dw 0, 0
 	lvldata_next: dw 0
 	lvldata_reserved: times 1024 - ( $ - lvldata ) db 0
