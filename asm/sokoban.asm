@@ -5,23 +5,15 @@
 pop dx
 mov [boot_drive], dl
 
+;Load level (hardcoded for now!)
 mov ax, 324
 call lvlload
 test al, al
-jz xxx
+jz lvlok
 call gotext
 call puthexb
 jmp $
-xxx:
-
-; mov ax, 5
-; mov cx, 0x13
-; call getmapaddr
-; call debug
-; dec cx
-; call getmapaddr
-; call debug
-; jmp $
+lvlok:
 
 ;First of all, enter 13h graphics mode
 mov al, 0x13
@@ -36,10 +28,6 @@ call findplayer
 
 ;Draw whole map for the first time
 call drawmap
-
-;mov ax, 0
-;mov cx, 0
-;call drawtile
 
 ;Gameloop
 gameloop:
@@ -74,9 +62,7 @@ kbaction:
 	mov ax, [lvldata_playerx]
 	mov cx, [lvldata_playery]
 	call movplayer					;Move player
-	;call findplayer
 	call drawstack_draw				;Redraw only necessary tiles
-	;call drawmap
 	kbaction_end:
 	popa
 	popf
@@ -152,24 +138,19 @@ drawtile:
 	mov bx, lvldata_map		;
 	shr bx, 4				;
 	mov fs, bx				;
-
-	push ax
-	mov ax, [lvldata_width]
-	mul cx
-	mov bx, ax
-	pop ax
+	push ax					;Store ax (will be used for mul)
+	mov ax, [lvldata_width]	;Multiply level width with y position
+	mul cx					;
+	mov bx, ax				;Move multiplication result to bx
+	pop ax					;Restore x position
 	add bx, ax				;Add collumn number
-
-	push ax
-	mov bh, [fs:bx]			;Fetch map tile
-	mov bl, 0
+	mov bh, [fs:bx]			;Fetch map tile (to upper higher part)
+	mov bl, 0				;This is used insted of multiplication with 256
 	add bx, sprites			;Add calculated offset to sprites array base
-	pop ax
-
-	shl ax, 4
-	shl cx, 4
-	mov dx, cx
-	mov cx, ax
+	shl ax, 4				;Multiply coordinates with 16 to get sprite position
+	shl cx, 4				;
+	mov dx, cx				;Get sprite position to other registers (needs fix)
+	mov cx, ax				;
 	call drawsprite			;Draw sprite
 	drawtile_end:
 	pop fs
@@ -207,10 +188,10 @@ drawstack_push:
 	pushf
 	pusha
 	mov bx, [drawstack_sc]			;Get stack counter
-	shl bx, 2
+	shl bx, 2						;Multiply the counter with 4 (single frame size)
 	mov [drawstack_bp + bx + 0], ax	;Push new coordinate to stack
 	mov [drawstack_bp + bx + 2], cx	;Push new coordinate to stack
-	inc word [drawstack_sc]		;Update stack pointer
+	inc word [drawstack_sc]			;Update stack pointer
 	popa
 	popf
 	ret
@@ -219,18 +200,18 @@ drawstack_push:
 drawstack_draw:
 	pushf
 	pusha
-	drawstack_draw_l1:				;Main loop
-		cmp word [drawstack_sc], 0	;Is stack counter 0 yet?
-		je drawstack_draw_end		;If yes - return from loop
-		dec word [drawstack_sc]		;Decrement stack pointer
-		mov bx, [drawstack_sc]		;Get stack counter value
-		shl bx, 2
-		mov ax, [drawstack_bp + bx + 0]
-		mov cx, [drawstack_bp + bx + 2]
-		call drawtile				;Draw tile at coordinates read from stack
-		jmp drawstack_draw_l1		;Loop
-	drawstack_draw_end:				;
-	mov word [drawstack_sc], 0		;Reset stack pointer
+	drawstack_draw_l1:					;Main loop
+		cmp word [drawstack_sc], 0		;Is stack counter 0 yet?
+		je drawstack_draw_end			;If yes - return from loop
+		dec word [drawstack_sc]			;Decrement stack pointer
+		mov bx, [drawstack_sc]			;Get stack counter value
+		shl bx, 2						;Multiply the counter with 4 (single frame size)
+		mov ax, [drawstack_bp + bx + 0]	;Get data from stack into ax and cx
+		mov cx, [drawstack_bp + bx + 2]	;
+		call drawtile					;Draw tile at coordinates read from stack
+		jmp drawstack_draw_l1			;Loop
+	drawstack_draw_end:					;
+	mov word [drawstack_sc], 0			;Reset stack pointer
 	popa
 	popf
 	ret
@@ -243,118 +224,64 @@ findplayer:
 	mov ax, lvldata_map						;
 	shr ax, 4								;
 	mov fs, ax								;
-
-;call gotext
 	mov ax, 0								;Reset horizontal counter
 	findplayer_l1:							;Horizontal loop
 		mov cx, 0							;Reset vertical counter
 		findplayer_l2:						;Vertical loop
 			call getmapaddr					;Get current map address
-			mov dl, byte [fs:bx]	;Get current field content
-		;	push ax
-			;mov al, dl
-			;call puthexb
-			;pop ax
-
-			cmp dl, tile_player
+			mov dl, byte [fs:bx]			;Get current field content
+			cmp dl, tile_player				;Check if it's player
 			je findplayer_found				;If so, jump to match routine
-			cmp dl, tile_socketplayer
+			cmp dl, tile_socketplayer		;Check if it;s player on socket
 			je findplayer_found				;If so, jump to match routine
-
-			;call puthexw
 			inc cx							;Increment vertical counter
 			cmp cx, [lvldata_height]		;Vertical loop limit
 			jb findplayer_l2				;Vertical loop jump
-
 		inc ax								;Increment horizontal loop counter
 		cmp ax, [lvldata_width]				;Horizontal loop limit
 		jb findplayer_l1					;Horizontal loop jump
 	jmp findplayer_end						;If no match, go to the end
-
-
-
 	findplayer_found:						;Match subroutine
-	;call gotext
-	;call puthexw
-	;jmp $
 	mov [lvldata_playerx], ax				;Move counters value into lvldata_playerpos
 	mov [lvldata_playery], cx				;Move counters value into lvldata_playerpos
 	findplayer_end:							;The end
-	;jmp $
-	pop fs
+	pop fs									;
 	popa									;Pop all registers
 	popf
 	ret
 
-
-debug:
-	pushf
-	pusha
-	call gotext
-
-	mov si, debug_nl
-	push ax
-	mov al, 'a'
-	call putc
-	pop ax
-	call puthexw
-	call puts
-
-	mov al, 'b'
-	call putc
-	mov ax, bx
-	call puthexw
-	call puts
-
-	mov al, 'c'
-	call putc
-	mov ax, cx
-	call puthexw
-	call puts
-
-	mov al, 'd'
-	call putc
-	mov ax, dx
-	call puthexw
-	call puts
-
-	popa
-	popf
-	ret
-	debug_nl: db 10, 13, 0
-
-
 ;Moves player around the map
-;ax - x position
-;cx - y position
+
 ;dl - x delta (0-1-2)
 ;dh - y delta (0-1-2)
 movplayer:
 	pushf
 	pusha
-
-	push ax
-	push cx
-	push dx
-	push dx
-	mov dh, 0
-	add ax, dx
-	pop dx
-	mov dl, dh
-	mov dh, 0
-	add cx, dx
-	dec ax
-	dec cx
-	pop dx
-	call movtile
-	pop cx
-	pop ax
-	call movtile
-
+	mov ax, [lvldata_playerx]		;Get current player position
+	mov cx, [lvldata_playery]		;
+	mov [movplayer_delta], dx		;Store delta
+	mov dh, 0						;Add x delta
+	add ax, dx						;
+	jc movplayer_end				;Abort on position overflow
+	mov dx, [movplayer_delta]		;Restore delta
+	mov dl, dh						;Add y delta
+	mov dh, 0						;
+	add cx, dx						;
+	jc movplayer_end				;Abort on position overflow
+	sub ax, 1						;
+	jc movplayer_end				;Abort on position underflow
+	sub cx, 1						;
+	jc movplayer_end				;Abort on position underflow
+	mov dx, [movplayer_delta]		;Restore delta
+	call movtile					;Move the player destination tile using the same delta
+	mov ax, [lvldata_playerx]		;Get player position
+	mov cx, [lvldata_playery]		;
+	call movtile					;And finally, move the player
+	movplayer_end:
 	popa
 	popf
 	ret
-
+	movplayer_delta: dw 0
 
 ;Moves tiles around the map
 ;ax - x position
@@ -364,143 +291,94 @@ movplayer:
 movtile:
 	pushf
 	pusha
-	push fs
-	mov bx, lvldata_map
-	shr bx, 4
-	mov fs, bx
-	mov bx, 0
-
-	;call gotext
-	;call puthexw
-
-	;mov dx, 0x0100
-
-	mov [movtile_srcx], ax
-	mov [movtile_srcy], cx
-
-	call getmapaddr
-	mov bl, [fs:bx]
-	;call debug
-	mov [movtile_src], bl
-
-	push dx
-	mov dh, 0
-	add ax, dx
-	jc movtile_end
-	pop dx
-
-	mov dl, dh
-	mov dh, 0
-	add cx, dx
-	jc movtile_end
-
-	sub cx, 1
-	jc movtile_end
-
-	sub ax, 1
-	jc movtile_end
-
-	cmp ax, [lvldata_width]
-	jae movtile_end
-	cmp cx, [lvldata_height]
-	jae movtile_end
-
-
-
-	mov [movtile_destx], ax
-	mov [movtile_desty], cx
-	call getmapaddr
-	;call debug
-	mov bl, [fs:bx]
-	mov [movtile_dest], bl
-
-
-	mov al, [movtile_src]
-	mov ah, [movtile_dest]
-
-	;call puthexw
-
-	;call gotext
-	;call puthexw
-
-	mov bx, 0
-	movtile_l:
-		cmp bx, movtile_allowed_cnt * 4
-		jae movtile_end
-
-		; push ax
-		; ;mov ax, [bx + movtile_allowed]
-		; call puthexw
-		; mov al, 10
-		; call putc
-		; pop ax
-
-		cmp ax, [bx + movtile_allowed]
-		je movtile_move
-
-		add bx, 4
-		jmp movtile_l
-
-	movtile_move:
-	mov dx, [bx + movtile_allowed + 2]
-	mov ax, [movtile_srcx]
-	mov cx, [movtile_srcy]
-	call drawstack_push
-	call getmapaddr
-	mov [fs:bx], byte dl
-	mov ax, [movtile_destx]
-	mov cx, [movtile_desty]
-	call drawstack_push
-	call getmapaddr
-	mov [fs:bx], dh
-
-	cmp byte [movtile_src], tile_player
-	je movtile_update_player
-	cmp byte [movtile_src], tile_socketplayer
-	je movtile_update_player
-	jmp movtile_end
-
-	movtile_update_player:
-	mov ax, [movtile_destx]
-	mov [lvldata_playerx], ax
-	mov ax, [movtile_desty]
-	mov [lvldata_playery], ax
-
-	movtile_end:
-
-
+	push fs										;Setup fs segment register in order to access whole map as one segment
+	mov bx, lvldata_map							;
+	shr bx, 4									;
+	mov fs, bx									;
+	mov bx, 0									;Clear bx
+	mov [movtile_srcx], ax						;Store source position in memory
+	mov [movtile_srcy], cx						;
+	call getmapaddr								;Get source tile
+	mov bl, [fs:bx]								;
+	mov [movtile_src], bl						;Store it in memory
+	push dx										;Add delta to source position
+	mov dh, 0									;
+	add ax, dx									;
+	jc movtile_end								;Abort if destination exceeds range
+	pop dx										;
+	mov dl, dh									;
+	mov dh, 0									;
+	add cx, dx									;
+	jc movtile_end								;Abort if destination exceeds range
+	sub cx, 1									;
+	jc movtile_end								;Abort on address underroll
+	sub ax, 1									;
+	jc movtile_end								;Abort on address underroll
+	cmp ax, [lvldata_width]						;Compare destination address with map bounds
+	jae movtile_end								;Abort when it exceeds map boundaries
+	cmp cx, [lvldata_height]					;
+	jae movtile_end								;Abort when it exceeds map boundaries
+	mov [movtile_destx], ax						;Store destination in memory
+	mov [movtile_desty], cx						;
+	call getmapaddr								;Get destination tile
+	mov bl, [fs:bx]								;
+	mov [movtile_dest], bl						;And also store it in memory
+	mov al, [movtile_src]						;Read both destination and source tiles into ax
+	mov ah, [movtile_dest]						;
+	mov bx, 0									;Reset loop counter
+	movtile_l:									;
+		cmp bx, movtile_allowed_cnt * 4			;Bondary is number of allowed combinations * 4 bytes each
+		jae movtile_end							;Abort if proper combination hasn't been found
+		cmp ax, [bx + movtile_allowed]			;If current situation matches one of predefined cases
+		je movtile_move							;Move, yay!
+		add bx, 4								;Go 4 bytes forward
+		jmp movtile_l							;Loop
+	movtile_move:								;This part actually moves the tiles
+	mov dx, [bx + movtile_allowed + 2]			;Get new tile values that should be loaded
+	mov ax, [movtile_srcx]						;Get source tile coordinates
+	mov cx, [movtile_srcy]						;
+	call drawstack_push							;Queue it for redrawing
+	call getmapaddr								;Get source tile address
+	mov [fs:bx], dl								;Load new tile value
+	mov ax, [movtile_destx]						;Get destination tile coordinates
+	mov cx, [movtile_desty]						;
+	call drawstack_push							;Queue it for redrawing
+	call getmapaddr								;Get its address
+	mov [fs:bx], dh								;Load new tile value
+	cmp byte [movtile_src], tile_player			;Check if moved tile was player
+	je movtile_update_player					;Update player position
+	cmp byte [movtile_src], tile_socketplayer	;Or socketplayer
+	je movtile_update_player					;Update player position
+	jmp movtile_end								;We are done if it was neither of them
+	movtile_update_player:						;Update player position
+	mov ax, [movtile_destx]						;
+	mov [lvldata_playerx], ax					;
+	mov ax, [movtile_desty]						;
+	mov [lvldata_playery], ax					;
+	movtile_end:								;The end
 	pop fs
 	popa
 	popf
 	ret
-	movtile_src: db 0
-	movtile_dest: db 0
-	movtile_srcx: dw 0
-	movtile_srcy: dw 0
-	movtile_destx: dw 0
-	movtile_desty: dw 0
-
-	movtile_allowed:
-		db tile_player, tile_socket
-			db tile_air, tile_socketplayer
-		db tile_player, tile_air
-			db tile_air, tile_player
-		db tile_socketplayer, tile_air
-			db tile_socket, tile_player
-		db tile_socketplayer, tile_socket
-			db tile_socket, tile_socketplayer
-		db tile_box, tile_air
-			db tile_air, tile_box
-		db tile_box, tile_socket
-			db tile_air, tile_socketbox
-		db tile_socketbox, tile_air
-			db tile_socket, tile_box
-		db tile_socketbox, tile_socket
-			db tile_socket, tile_socketbox
+	movtile_src: db 0		;Source tile value
+	movtile_srcx: dw 0		;Source position
+	movtile_srcy: dw 0		;
+	movtile_dest: db 0		;Destination tile value
+	movtile_destx: dw 0		;Destination position
+	movtile_desty: dw 0		;
+	movtile_allowed:		;Allowed movement combinations (src, dest -> new src, new dest)
+		db tile_player, tile_air, 			tile_air, tile_player
+		db tile_player, tile_socket, 		tile_air, tile_socketplayer
+		db tile_socketplayer, tile_air, 	tile_socket, tile_player
+		db tile_socketplayer, tile_socket, 	tile_socket, tile_socketplayer
+		db tile_box, tile_air, 				tile_air, tile_box
+		db tile_box, tile_socket, 			tile_air, tile_socketbox
+		db tile_socketbox, tile_air, 		tile_socket, tile_box
+		db tile_socketbox, tile_socket, 	tile_socket, tile_socketbox
 	movtile_allowed_cnt equ 8
 
 
-;Return requested map field address
+;Return requested map field address (relative to lvldata_map)
 ;ax - x position
 ;cx - y position
 ;return bx - address
@@ -508,14 +386,13 @@ getmapaddr:
 	pushf
 	pusha
 	mov bx, cx						;Insert y position
-	push ax
-	mov dx, 0
-	mov ax, [lvldata_width]
-	mul bx
-	mov bx, ax
-	;jo $
-	pop ax
-	add bx, ax						;Add x position
+	push ax							;Store ax (used for mul)
+	mov ax, [lvldata_width]			;Multiply level width with y position
+	mul bx							;
+	mov bx, ax						;Get result to bx
+	;jo $							;Game exception should be thrown here
+	pop ax							;Restore bx
+	add bx, ax						;Add x position to the result
 	mov [getmapaddr_addr], bx		;Temporarily store address in memory
 	popa							;
 	popf							;
@@ -529,72 +406,68 @@ lvlload:
 	pushf
 	pusha
 	push es
-	mov [lvlload_lba], ax
-
-	mov bx, ds
-	mov es, bx
-	mov bx, lvldata
-	mov dh, 2
-	mov dl, [boot_drive]
-	call diskrlba
-	jc lvlload_end
-
-	;Magic number check
-	mov si, lvlload_magic
-	mov di, lvldata_magic
-	mov cx, 8
-	rep cmpsb
-	mov byte [lvlload_error], lvlload_error_magic
-	jnz lvlload_end
-
-	;Check level size
-	mov ax, [lvldata_width]
-	mov cx, [lvldata_height]
-	mul cx
-	mov byte [lvlload_error], lvlload_error_size
-	jo lvlload_end
-
-	;Calculate needed sectors amount
-	shr ax, 9
-	inc ax
-	add ax, [lvlload_lba]
-	add ax, 2
-	mov [lvlload_endsector], ax
-	mov bx, lvldata_map
-	shr bx, 4
-	mov es, bx
-	mov bx, 0
-	mov dl, [boot_drive]
-	mov dh, 1
-	mov ax, [lvlload_lba]
-	add ax, 2
-
-	lvlload_loop:
-	call diskrlba
-	add bx, 512
-	inc ax
-	cmp ax, [lvlload_endsector]
-	jbe lvlload_loop
-
-	mov byte [lvlload_error], lvlload_error_disk
-	jc lvlload_end
-
-	mov byte [lvlload_error], lvlload_error_none
-	lvlload_end:
+	mov [lvlload_lba], ax								;Store level's disk LBA address
+	mov bx, ds											;Make es have value of ds
+	mov es, bx											;
+	mov bx, lvldata										;
+	mov dh, 1											;Read two sectors of header
+	mov dl, [boot_drive]								;We are reading from booy drive
+	mov byte [lvlload_error], lvlload_error_disk		;Get the error number ready
+	call diskrlba										;Read 1st sector from disk
+	jc lvlload_end										;Abort on error
+	inc ax												;Increment sector number
+	add bx, 512											;Increment output address
+	call diskrlba										;Read second sector
+	jc lvlload_end										;Abort on error
+	mov si, lvlload_magic								;Validate magic string
+	mov di, lvldata_magic								;
+	mov cx, 8											;We will be comparing 8 bytes
+	rep cmpsb											;
+	mov byte [lvlload_error], lvlload_error_magic		;Get error number ready
+	jnz lvlload_end										;Abort if doesn't match
+	mov ax, [lvldata_width]								;Check level size
+	mov cx, [lvldata_height]							;
+	mul cx												;Multiply width and height
+	mov byte [lvlload_error], lvlload_error_size		;Get error ready
+	jo lvlload_end										;Error on overflow (level can be up to 65536 bytes long)
+	jz lvlload_end										;Also, jump when there's no data
+	dec ax												;Decrement size in bytes
+	shr ax, 9											;Divide level size (in bytes) by 512
+	inc ax												;Increment by 1 (at least one sector has to be read)
+	add ax, [lvlload_lba]								;Add sector amount to inital level LBA
+	add ax, 2											;And don't forget to skip two bytes of header
+	mov [lvlload_endsector], ax							;Store end sector in memory
+	mov bx, lvldata_map									;Setup es to be able to address map data as one segment
+	shr bx, 4											;
+	mov es, bx											;
+	mov bx, 0											;
+	mov dl, [boot_drive]								;We are reading from boot drive
+	mov dh, 1											;We are reading one sector at a time
+	mov ax, [lvlload_lba]								;Load initial LBA
+	add ax, 2											;Skip header
+	mov byte [lvlload_error], lvlload_error_disk		;Get the error code ready
+	lvlload_loop:										;
+	call diskrlba										;Read data from disk
+	jc lvlload_end										;Abort on disk error
+	add bx, 512											;Add 512 to memory pointer
+	inc ax												;Increment sector counter
+	cmp ax, [lvlload_endsector]							;Compare current sector with endsector value
+	jb lvlload_loop										;Loop when less or equal
+	mov byte [lvlload_error], lvlload_error_none		;Exit without error
+	lvlload_end:										;
 	pop es
 	popa
 	popf
 	mov al, [lvlload_error]
 	ret
-	lvlload_lba: dw 0
-	lvlload_error: db 0
-	lvlload_magic: db "soko lvl"
-	lvlload_endsector: dw 0
-	lvlload_error_none equ 0
-	lvlload_error_disk equ 1
-	lvlload_error_magic equ 2
-	lvlload_error_sector equ 3
-	lvlload_error_size equ 4
+	lvlload_lba: dw 0				;Initial LBA
+	lvlload_endsector: dw 0			;Sector ending the read
+	lvlload_error: db 0				;Error returned on exit
+	lvlload_magic: db "soko lvl"	;Proper magic string
+	lvlload_error_none equ 0		;No error
+	lvlload_error_disk equ 1		;Disk operation error
+	lvlload_error_magic equ 2		;Bad magic string
+	lvlload_error_size equ 4		;Bad level size
 
 boot_drive: db 0
 
