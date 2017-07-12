@@ -129,12 +129,24 @@ drawsprite:
 	sprite_height equ 16
 
 ;Draws map tile on screen
-;ax - x position
-;cx - y position
+;ax - x tile position
+;cx - y tile position
 drawtile:
 	pushf
 	pusha
 	push fs					;Setup segment register - we want to access whole 65536 byte long map as one segment
+	mov bx, [lvldata_camx]	;Load camera position into bx and dx
+	mov dx, [lvldata_camy]	;
+	cmp ax, bx				;Compare tile x position with camera (left)
+	jb drawtile_end			;Abort when below
+	cmp cx, dx				;Compare tile y position with camera (up)
+	jb drawtile_end			;Abort when below
+	add bx, viewport_width	;Add viewport dimensions to camera location
+	add dx, viewport_height	;
+	cmp ax, bx				;Compare tile x position with viewport boundary (right)
+	jae drawtile_end		;Abort when exceeds
+	cmp cx, dx				;Compare tile y position with viewport boundary (down)
+	jae drawtile_end		;Abort when exceeds
 	mov bx, lvldata_map		;
 	shr bx, 4				;
 	mov fs, bx				;
@@ -147,6 +159,8 @@ drawtile:
 	mov bh, [fs:bx]			;Fetch map tile (to upper higher part)
 	mov bl, 0				;This is used insted of multiplication with 256
 	add bx, sprites			;Add calculated offset to sprites array base
+	sub ax, [lvldata_camx]
+	sub cx, [lvldata_camy]
 	shl ax, 4				;Multiply coordinates with 16 to get sprite position
 	shl cx, 4				;
 	mov dx, cx				;Get sprite position to other registers (needs fix)
@@ -158,20 +172,25 @@ drawtile:
 	popf
 	ret
 
-;Draws part of map on screen:
+;Draw visible part of map on screen
 drawmap:
 	pushf
 	pusha
-	mov ax, 0
+	mov ax, [lvldata_camx]			;Get camera x
+	mov bx, ax						;
+	add bx, viewport_width			;And add viewport width to it
+	mov cx, [lvldata_camy]			;Get camera y
+	mov dx, cx						;
+	add dx, viewport_height			;And add viewport height to it
 	drawmap_l1:						;Vertical loop
-		mov cx, 0					;Reset horizontal counter
+		mov cx, [lvldata_camy]		;Reset horizontal counter
 		drawmap_l2: 				;Horizontal loop
 			call drawtile			;Draw map tile
 			inc cx					;Increment counter
-			cmp cx, viewport_height	;Loop boundary
+			cmp cx, dx				;Loop boundary
 			jl drawmap_l2			;Loop
 		inc ax						;Increment counter
-		cmp ax, viewport_width		;Loop boundary
+		cmp ax, bx					;Loop boundary
 		jl drawmap_l1				;Loop
 	popa
 	popf
@@ -376,6 +395,55 @@ movtile:
 		db tile_socketbox, tile_air, 		tile_socket, tile_box
 		db tile_socketbox, tile_socket, 	tile_socket, tile_socketbox
 	movtile_allowed_cnt equ 8
+
+;dl - detla x (0-1-2)
+;dh - delta y (0-1-2)
+movcam:
+	pushf
+	pusha
+	mov bx, dx					;Move delta into bx
+	mov byte [movcam_moved], 0	;Assume camera didn't move
+	mov cx, [lvldata_camx]		;Load current camera position
+	mov dx, [lvldata_camy]		;
+	movcam_xck:					;Check x position
+	mov ax, [lvldata_width]		;Load level width into ax
+	sub ax, viewport_width		;Substract viewport width
+	jo movcam_yck				;If this causes overflow level is smaller than viewport - no need to move
+	push bx						;Store delta
+	mov bh, 0					;Clear upper part
+	add cx, bx					;Add delta to bx
+	pop bx						;Restore delta
+	sub cx, 1					;Substract 1 from x position
+	js movcam_yck				;If result is negative - abort
+	cmp cx, ax					;Now compare reult with max camera x allowed
+	ja movcam_yck				;If exceeds - abort
+	mov [lvldata_camx], cx		;If've got here - everything's fine
+	or byte [movcam_moved], 1	;Set 'moved' flag
+	movcam_yck:					;Check y position
+	mov ax, [lvldata_height]	;Load level height
+	sub ax, viewport_height		;Substract viewport height
+	jo movcam_end				;If this causes overflow level is smaller than viewport - no need to move
+	push bx						;Store delta
+	xchg bl, bh					;Exchange deltas
+	mov bh, 0					;Clear upper part
+	add dx, bx					;Add delta to cam position
+	pop bx						;Restore delta
+	sub dx, 1					;Substract 1
+	js movcam_end				;If result is negative - abort
+	cmp dx, ax					;Now compare with max camera y allowed
+	ja movcam_end				;If exceeds - abort
+	mov [lvldata_camy], dx		;If've got here - everything's fine
+	or byte [movcam_moved], 1	;Set 'moved' flag
+	mov al, [movcam_moved]		;Check if camera has moved
+	test al, al					;
+	jz movcam_end				;If not - quit
+	call drawmap				;Redraw map only if camera has been moved
+	movcam_end:
+	popa
+	popf
+	ret
+	movcam_moved: db 0
+
 
 
 ;Return requested map field address (relative to lvldata_map)
