@@ -6,9 +6,9 @@ lvldata:
 	lvldata_playerx: dw 0
 	lvldata_playery: dw 0
 	lvldata_width: dw 22
-	lvldata_height: dw 20
-	lvldata_camx: dw 0
-	lvldata_camy: dw 0
+	lvldata_height: dw 200
+	lvldata_camx: dw 2
+	lvldata_camy: dw 2
 	lvldata_flags: dw 0, 0
 	lvldata_next: dw 0
 	lvldata_reserved: times 1024 - ( $ - lvldata ) db 0
