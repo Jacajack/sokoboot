@@ -330,7 +330,7 @@ movplayer:
 	mov ax, [lvldata_playerx]		;Get player position
 	mov cx, [lvldata_playery]		;
 	mov bx, [lvldata_camx]			;And camera position
-	mov dx, [lvldata_camy]
+	mov dx, [lvldata_camy]			;
 	add bx, viewport_width			;Add viewport size to camer position
 	jo movplayer_end				;Cancel on overflow
 	add dx, viewport_height			;
@@ -345,6 +345,9 @@ movplayer:
 	movplayer_cam_mov:				;
 	mov dx, [movplayer_cam_dx]		;Get camera delta from memory
 	call movcam						;Move camera
+	test al, al						;Check if it could be moved
+	jz movplayer_end				;If not, quit
+	call drawmap					;Else, redraw map
 	movplayer_end:
 	popa
 	popf
@@ -449,6 +452,7 @@ movtile:
 
 ;dl - detla x (0-1-2)
 ;dh - delta y (0-1-2)
+;return al - 1 if moved, 0 otherwise
 movcam:
 	pushf
 	pusha
@@ -464,12 +468,14 @@ movcam:
 	mov bh, 0					;Clear upper part
 	add cx, bx					;Add delta to bx
 	pop bx						;Restore delta
+	cmp bl, 1					;If no movement was requested - abort
+	je movcam_yck				;
 	sub cx, 1					;Substract 1 from x position
 	js movcam_yck				;If result is negative - abort
 	cmp cx, ax					;Now compare reult with max camera x allowed
 	ja movcam_yck				;If exceeds - abort
 	mov [lvldata_camx], cx		;If've got here - everything's fine
-	or byte [movcam_moved], 1	;Set 'moved' flag
+	mov byte [movcam_moved], 1	;Set 'moved' flag
 	movcam_yck:					;Check y position
 	mov ax, [lvldata_height]	;Load level height
 	sub ax, viewport_height		;Substract viewport height
@@ -479,18 +485,17 @@ movcam:
 	mov bh, 0					;Clear upper part
 	add dx, bx					;Add delta to cam position
 	pop bx						;Restore delta
+	cmp bh, 1					;If no movement was requested - abort
+	je movcam_end				;
 	sub dx, 1					;Substract 1
 	js movcam_end				;If result is negative - abort
 	cmp dx, ax					;Now compare with max camera y allowed
 	ja movcam_end				;If exceeds - abort
 	mov [lvldata_camy], dx		;If've got here - everything's fine
-	or byte [movcam_moved], 1	;Set 'moved' flag
-	mov al, [movcam_moved]		;Check if camera has moved
-	test al, al					;
-	jz movcam_end				;If not - quit
-	call drawmap				;Redraw map only if camera has been moved
+	mov byte [movcam_moved], 1	;Set 'moved' flag
 	movcam_end:
-	popa
+	popa						;
+	mov al, [movcam_moved]		;Return value
 	popf
 	ret
 	movcam_moved: db 0
