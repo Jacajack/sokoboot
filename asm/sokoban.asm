@@ -498,7 +498,7 @@ lvlload:
 	mov dl, [boot_drive]								;We are reading from booy drive
 	mov byte [lvlload_error], lvlload_error_disk		;Get the error number ready
 	call diskrlba										;Read 1st sector from disk
-	jc lvlload_end										;Abort on error
+	;jc lvlload_end										;Abort on error
 	inc ax												;Increment sector number
 	add bx, 512											;Increment output address
 	call diskrlba										;Read second sector
@@ -532,7 +532,7 @@ lvlload:
 	mov byte [lvlload_error], lvlload_error_disk		;Get the error code ready
 	lvlload_loop:										;
 	call diskrlba										;Read data from disk
-	jc lvlload_end										;Abort on disk error
+	;jc lvlload_end										;Abort on disk error
 	add bx, 512											;Add 512 to memory pointer
 	inc ax												;Increment sector counter
 	cmp ax, [lvlload_endsector]							;Compare current sector with endsector value
