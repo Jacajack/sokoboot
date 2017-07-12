@@ -45,7 +45,15 @@ kbaction:
 	mov dl, 0						;
 	mov dh, 1						;
 	je kbaction_match				;
+	cmp ah, 0x4b					;Player - move left(arrow)
+	mov dl, 0						;
+	mov dh, 1						;
+	je kbaction_match				;
 	cmp al, 'd'						;Player - move right
+	mov dl, 2						;
+	mov dh, 1						;
+	je kbaction_match				;
+	cmp ah, 0x4d					;Player - move right(arrow)
 	mov dl, 2						;
 	mov dh, 1						;
 	je kbaction_match				;
@@ -53,7 +61,15 @@ kbaction:
 	mov dl, 1						;
 	mov dh, 0						;
 	je kbaction_match				;
+	cmp ah, 0x48					;Player - move up(arrow)
+	mov dl, 1						;
+	mov dh, 0						;
+	je kbaction_match				;
 	cmp al, 's'						;Player - move down
+	mov dl, 1						;
+	mov dh, 2						;
+	je kbaction_match				;
+	cmp ah, 0x50					;Player - move down(arrow)
 	mov dl, 1						;
 	mov dh, 2						;
 	je kbaction_match				;
