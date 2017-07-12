@@ -67,7 +67,7 @@ splashload:
 		add cx, 512 * splash_sector_portion	;Increment address counter
 		add ax, splash_sector_portion		;Increment sector counter
 		cmp ax, splash_sector+splash_len	;Check loop condition
-		jbe splashload_l						;Loop
+		jbe splashload_l					;Loop
 	pop es
 	pop ds
 	popa
