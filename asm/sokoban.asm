@@ -312,11 +312,46 @@ movplayer:
 	mov ax, [lvldata_playerx]		;Get player position
 	mov cx, [lvldata_playery]		;
 	call movtile					;And finally, move the player
+	mov byte [movplayer_cam_dx], 01	;Don't move camera by default
+	mov byte [movplayer_cam_dy], 01	;
+	mov ax, [lvldata_playerx]		;Get player position
+	mov cx, [lvldata_playery]		;
+	mov bx, [lvldata_camx]			;And camera position
+	mov dx, [lvldata_camy]			;
+	movplayer_cam_ckl:				;
+	sub ax, bx						;Check if player is standing on the edge of viewport
+	jnz movplayer_cam_cku			;If so, move camera, else continue checking
+	mov byte [movplayer_cam_dx], 0	;
+	movplayer_cam_cku:				;
+	sub cx, dx						;Check if player is standing on the edge of viewport
+	jnz movplayer_cam_ckr			;If so, move camera, else continue checking
+	mov byte [movplayer_cam_dy], 0	;
+	movplayer_cam_ckr:				;
+	mov ax, [lvldata_playerx]		;Get player position
+	mov cx, [lvldata_playery]		;
+	mov bx, [lvldata_camx]			;And camera position
+	mov dx, [lvldata_camy]
+	add bx, viewport_width			;Add viewport size to camer position
+	jo movplayer_end				;Cancel on overflow
+	add dx, viewport_height			;
+	jo movplayer_end				;
+	sub bx, ax						;Check if player is standing on the edge of viewport
+	jnz movplayer_cam_ckd			;If so, move camera, else continue checking
+	mov byte [movplayer_cam_dx], 2	;
+	movplayer_cam_ckd:				;
+	sub dx, cx						;Check if player is standing on the edge of viewport
+	jnz movplayer_cam_mov			;If so, move camera, else continue checking
+	mov byte [movplayer_cam_dy], 2	;
+	movplayer_cam_mov:				;
+	mov dx, [movplayer_cam_dx]		;Get camera delta from memory
+	call movcam						;Move camera
 	movplayer_end:
 	popa
 	popf
 	ret
 	movplayer_delta: dw 0
+	movplayer_cam_dx: db 0
+	movplayer_cam_dy: db 0
 
 ;Moves tiles around the map
 ;ax - x position
