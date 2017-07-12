@@ -168,10 +168,10 @@ drawmap:
 		drawmap_l2: 				;Horizontal loop
 			call drawtile			;Draw map tile
 			inc cx					;Increment counter
-			cmp cx, viewport_h		;Loop boundary
+			cmp cx, viewport_height	;Loop boundary
 			jl drawmap_l2			;Loop
 		inc ax						;Increment counter
-		cmp ax, viewport_w			;Loop boundary
+		cmp ax, viewport_width		;Loop boundary
 		jl drawmap_l1				;Loop
 	popa
 	popf
@@ -482,9 +482,8 @@ tile_socket equ 3
 tile_socketbox equ 4
 tile_player equ 5
 tile_socketplayer equ 6
-
-viewport_w equ 20
-viewport_h equ 12
+viewport_width equ 20
+viewport_height equ 12
 
 sprites: incbin "../resources/sprites.bin"
 
