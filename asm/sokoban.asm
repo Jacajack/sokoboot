@@ -5,14 +5,31 @@
 pop dx
 mov [boot_drive], dl
 
-;Load level (hardcoded for now!)
-mov ax, 324
-call lvlload
-test al, al
-jz lvlok
+;Load level (ugly!)
 call gotext
-call puthexb
-jmp $
+lvlprompt:
+	call cls
+	mov si, mesg_levelnum_prompt
+	call puts
+	mov si, lvlprompt_buf
+	mov di, lvlprompt_buf + 32
+	call gets
+	call atoi
+	jc lvlprompt
+	call lvlload
+	test al, al
+	jz lvlok
+	mov si, mesg_lvlerr
+	call puts
+	call puthexb
+	mov si, mesg_keyretry
+	call puts
+	call getc
+	jmp lvlprompt
+mesg_levelnum_prompt: db "Please specify from where level should be loaded: ", 13, 10, "-> ", 0
+mesg_lvlerr: db  13, 10, "Error: ", 0
+mesg_keyretry: db 13, 10, "Press any key to retry", 13, 10, 0
+lvlprompt_buf: times 32 db 0
 lvlok:
 
 ;First of all, enter 13h graphics mode
