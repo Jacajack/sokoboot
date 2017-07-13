@@ -41,48 +41,52 @@ jmp $
 kbaction:
 	pushf
 	pusha
-	cmp al, 'a'						;Player - move left
-	mov dl, 0						;
-	mov dh, 1						;
-	je kbaction_match				;
-	cmp ah, 0x4b					;Player - move left(arrow)
-	mov dl, 0						;
-	mov dh, 1						;
-	je kbaction_match				;
-	cmp al, 'd'						;Player - move right
-	mov dl, 2						;
-	mov dh, 1						;
-	je kbaction_match				;
-	cmp ah, 0x4d					;Player - move right(arrow)
-	mov dl, 2						;
-	mov dh, 1						;
-	je kbaction_match				;
-	cmp al, 'w'						;Player - move up
-	mov dl, 1						;
-	mov dh, 0						;
-	je kbaction_match				;
-	cmp ah, 0x48					;Player - move up(arrow)
-	mov dl, 1						;
-	mov dh, 0						;
-	je kbaction_match				;
-	cmp al, 's'						;Player - move down
-	mov dl, 1						;
-	mov dh, 2						;
-	je kbaction_match				;
-	cmp ah, 0x50					;Player - move down(arrow)
-	mov dl, 1						;
-	mov dh, 2						;
-	je kbaction_match				;
-	jmp kbaction_end				;No match
-	kbaction_match:					;
-	mov ax, [lvldata_playerx]
-	mov cx, [lvldata_playery]
-	call movplayer					;Move player
-	call drawstack_draw				;Redraw only necessary tiles
+	mov bx, 0									;Clear counter
+	kbaction_ascii_search:						;
+		cmp bx, kbaction_ascii_count * 3		;Compare with limit
+		jae kbaction_ascii_done					;Quit when exceeded
+		cmp [kbaction_ascii + bx], al			;Check if current ascci code matched the one from list
+		jne kbaction_ascii_search_bad			;If not, continue
+		mov dx, [kbaction_ascii + bx + 1]		;Get address of function that should be called
+		call dx									;Call the keypress function
+		kbaction_ascii_search_bad:				;
+		add bx, 3								;Increment counter (one entry has 3b)
+		jmp kbaction_ascii_search				;Loop
+	kbaction_ascii_done:						;
+	mov bx, 0									;Clear counter
+	kbaction_scancode_search:					;
+		cmp bx, kbaction_scancode_count * 3		;Compare with limit
+		jae kbaction_scancode_done				;Quit when exceeded
+		cmp [kbaction_scancode + bx], ah		;Check if current scan code matched the one from list
+		jne kbaction_scancode_search_bad		;If not, continue
+		mov dx, [kbaction_scancode + bx + 1]	;Get address of function that should be called
+		call dx									;Call the keypress function
+		kbaction_scancode_search_bad:			;
+		add bx, 3								;Increment counter (one entry has 3b)
+		jmp kbaction_scancode_search			;Loop
+	kbaction_scancode_done:
 	kbaction_end:
 	popa
 	popf
 	ret
+	kbaction_ascii: ;The array of supported keys
+		db 'a', dw kbaction_player_movel
+		db 'd', dw kbaction_player_mover
+		db 'w', dw kbaction_player_moveu
+		db 's', dw kbaction_player_moved
+		db 'A', dw kbaction_player_movel
+		db 'D', dw kbaction_player_mover
+		db 'W', dw kbaction_player_moveu
+		db 'S', dw kbaction_player_moved
+		kbaction_ascii_count equ 8
+	kbaction_scancode: ;And some additional scancodes list
+		db 0x4b, dw kbaction_player_movel
+		db 0x4d, dw kbaction_player_mover
+		db 0x48, dw kbaction_player_moveu
+		db 0x50, dw kbaction_player_moved
+		kbaction_scancode_count equ 4
+
+%include "keyactions.asm"
 
 ;Plots a single pixel
 ;al - color
