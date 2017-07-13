@@ -43,26 +43,26 @@ kbaction:
 	pusha
 	mov bx, 0									;Clear counter
 	kbaction_ascii_search:						;
-		cmp bx, kbaction_ascii_count * 3		;Compare with limit
+		cmp bx, kbaction_ascii_count * 4		;Compare with limit
 		jae kbaction_ascii_done					;Quit when exceeded
 		cmp [kbaction_ascii + bx], al			;Check if current ascci code matched the one from list
 		jne kbaction_ascii_search_bad			;If not, continue
-		mov dx, [kbaction_ascii + bx + 1]		;Get address of function that should be called
+		mov dx, [kbaction_ascii + bx + 2]		;Get address of function that should be called
 		call dx									;Call the keypress function
 		kbaction_ascii_search_bad:				;
-		add bx, 3								;Increment counter (one entry has 3b)
+		add bx, 4								;Increment counter (one entry has 3b)
 		jmp kbaction_ascii_search				;Loop
 	kbaction_ascii_done:						;
 	mov bx, 0									;Clear counter
 	kbaction_scancode_search:					;
-		cmp bx, kbaction_scancode_count * 3		;Compare with limit
+		cmp bx, kbaction_scancode_count * 4		;Compare with limit
 		jae kbaction_scancode_done				;Quit when exceeded
 		cmp [kbaction_scancode + bx], ah		;Check if current scan code matched the one from list
 		jne kbaction_scancode_search_bad		;If not, continue
-		mov dx, [kbaction_scancode + bx + 1]	;Get address of function that should be called
+		mov dx, [kbaction_scancode + bx + 2]	;Get address of function that should be called
 		call dx									;Call the keypress function
 		kbaction_scancode_search_bad:			;
-		add bx, 3								;Increment counter (one entry has 3b)
+		add bx, 4								;Increment counter (one entry has 3b)
 		jmp kbaction_scancode_search			;Loop
 	kbaction_scancode_done:
 	kbaction_end:
@@ -70,20 +70,20 @@ kbaction:
 	popf
 	ret
 	kbaction_ascii: ;The array of supported keys
-		db 'a', dw kbaction_player_movel
-		db 'd', dw kbaction_player_mover
-		db 'w', dw kbaction_player_moveu
-		db 's', dw kbaction_player_moved
-		db 'A', dw kbaction_player_movel
-		db 'D', dw kbaction_player_mover
-		db 'W', dw kbaction_player_moveu
-		db 'S', dw kbaction_player_moved
+		dw 'a', kbaction_player_movel
+		dw 'd', kbaction_player_mover
+		dw 'w', kbaction_player_moveu
+		dw 's', kbaction_player_moved
+		dw 'A', kbaction_player_movel
+		dw 'D', kbaction_player_mover
+		dw 'W', kbaction_player_moveu
+		dw 'S', kbaction_player_moved
 		kbaction_ascii_count equ 8
 	kbaction_scancode: ;And some additional scancodes list
-		db 0x4b, dw kbaction_player_movel
-		db 0x4d, dw kbaction_player_mover
-		db 0x48, dw kbaction_player_moveu
-		db 0x50, dw kbaction_player_moved
+		dw 0x4b, kbaction_player_movel
+		dw 0x4d, kbaction_player_mover
+		dw 0x48, kbaction_player_moveu
+		dw 0x50, kbaction_player_moved
 		kbaction_scancode_count equ 4
 
 %include "keyactions.asm"
