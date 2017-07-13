@@ -45,3 +45,8 @@ kbaction_player_movel:
 	popf
 	popa
 	ret
+
+kbaction_reload_level:
+	pop bx
+	mov bx, 0
+	jmp lvlprompt

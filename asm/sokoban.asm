@@ -6,8 +6,8 @@ pop dx
 mov [boot_drive], dl
 
 ;Load level (ugly!)
-call gotext
 lvlprompt:
+	call gotext
 	call cls
 	mov si, mesg_levelnum_prompt
 	call puts
@@ -95,7 +95,8 @@ kbaction:
 		dw 'D', kbaction_player_mover
 		dw 'W', kbaction_player_moveu
 		dw 'S', kbaction_player_moved
-		kbaction_ascii_count equ 8
+		dw 0x1b, kbaction_reload_level
+		kbaction_ascii_count equ 9
 	kbaction_scancode: ;And some additional scancodes list
 		dw 0x4b, kbaction_player_movel
 		dw 0x4d, kbaction_player_mover
