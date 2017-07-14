@@ -6,7 +6,7 @@ lvldata:
 	lvldata_playerx: dw 0
 	lvldata_playery: dw 0
 	lvldata_width: dw 255
-	lvldata_height: dw 256
+	lvldata_height: dw 255
 	lvldata_camx: dw 0
 	lvldata_camy: dw 0
 	lvldata_flags: dw 0, 0
