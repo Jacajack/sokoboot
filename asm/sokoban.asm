@@ -5,6 +5,12 @@
 pop dx
 mov [boot_drive], dl
 
+;Move stack to upper parts of the memory - normally it would collide with loaded level data
+mov dx, 0x8fc0
+mov ss, dx
+mov bp, 0xffff
+mov sp, bp
+
 ;Load level (ugly!)
 lvlprompt:
 	call gotext
