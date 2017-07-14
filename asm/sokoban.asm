@@ -22,9 +22,16 @@ lvlprompt:
 	call gets
 	call atoi
 	jc lvlprompt
-	call lvlload
+	mov cx, ax
+	call lvlinfoload
 	test al, al
-	jz lvlok
+	jnz lvlbad
+	mov ax, cx
+	call lvldataload
+	test al, al
+	jnz lvlbad
+	jmp lvlok
+	lvlbad:
 	mov si, mesg_lvlerr
 	call puts
 	call puthexb
@@ -557,53 +564,77 @@ getmapaddr:
 	getmapaddr_addr: dw 0
 
 ;ax - level LBA address on disk
-;return cf - set if bad level
-lvlload:
+;return al - error code
+lvlinfoload:
 	pushf
 	pusha
 	push es
-	mov [lvlload_lba], ax								;Store level's disk LBA address
+	mov [lvlinfoload_lba], ax							;Store level's disk LBA address
 	mov bx, ds											;Make es have value of ds
 	mov es, bx											;
 	mov bx, lvldata										;
 	mov dh, 1											;Read two sectors of header
 	mov dl, [boot_drive]								;We are reading from booy drive
-	mov byte [lvlload_error], lvlload_error_disk		;Get the error number ready
+	mov byte [lvlinfoload_error], lvlload_error_disk	;Get the error number ready
 	call diskrlba										;Read 1st sector from disk
 	;jc lvlload_end										;Abort on error
 	inc ax												;Increment sector number
 	add bx, 512											;Increment output address
 	call diskrlba										;Read second sector
-	jc lvlload_end										;Abort on error
-	mov si, lvlload_magic								;Validate magic string
+	;jc lvlinfoload_end									;Abort on error
+	mov si, lvlinfoload_magic							;Validate magic string
 	mov di, lvldata_magic								;
 	mov cx, 8											;We will be comparing 8 bytes
 	rep cmpsb											;
-	mov byte [lvlload_error], lvlload_error_magic		;Get error number ready
-	jnz lvlload_end										;Abort if doesn't match
+	mov byte [lvlinfoload_error], lvlload_error_magic	;Get error number ready
+	jnz lvlinfoload_end									;Abort if doesn't match
 	mov ax, [lvldata_width]								;Check level size
 	mov cx, [lvldata_height]							;
 	mul cx												;Multiply width and height
-	mov byte [lvlload_error], lvlload_error_size		;Get error ready
-	jo lvlload_end										;Error on overflow (level can be up to 65536 bytes long)
-	jz lvlload_end										;Also, jump when there's no data
+	mov byte [lvlinfoload_error], lvlload_error_size	;Get error ready
+	jo lvlinfoload_end									;Error on overflow (level can be up to 65536 bytes long)
+	jz lvlinfoload_end									;Also, jump when there's no data
+	mov byte [lvlinfoload_error], lvlload_error_none	;Exit without error
+	lvlinfoload_end:
+	pop es	
+	popa
+	mov al, [lvlinfoload_error]
+	popf
+	ret
+	lvlinfoload_lba: dw 0
+	lvlinfoload_error: db 0
+	lvlinfoload_magic: db "soko lvl"	;Proper magic string
+
+;ax - level LBA address on disk
+;return al - error code
+lvldataload:
+	pushf
+	pusha
+	push es	
+	mov [lvldataload_lba], ax							;Store level's disk LBA address
+	mov bx, ds											;Make es have value of ds
+	mov ax, [lvldata_width]								;Check level size
+	mov cx, [lvldata_height]							;
+	mul cx												;Multiply width and height
+	mov byte [lvldataload_error], lvlload_error_size	;Get error ready
+	jo lvldataload_end									;Error on overflow (level can be up to 65536 bytes long)
+	jz lvldataload_end									;Also, jump when there's no data
 	dec ax												;Decrement size in bytes
 	shr ax, 9											;Divide level size (in bytes) by 512
 	inc ax												;Increment by 1 (at least one sector has to be read)
-	add ax, [lvlload_lba]								;Add sector amount to inital level LBA
+	add ax, [lvldataload_lba]							;Add sector amount to initial level LBA
 	add ax, 2											;And don't forget to skip two bytes of header
-	mov [lvlload_endsector], ax							;Store end sector in memory
-
+	mov [lvldataload_endsector], ax						;Store end sector in memory
 	mov bx, ds											;Setup es to be able to address map data as one segment
 	mov es, bx											;
-	mov bx, lvlload_buf									;
+	mov bx, lvldataload_buf								;
 	mov di, 0											;Reset destination counter
 	mov dl, [boot_drive]								;We are reading from boot drive
 	mov dh, 1											;We are reading one sector at a time
-	mov ax, [lvlload_lba]								;Load initial LBA
+	mov ax, [lvldataload_lba]							;Load initial LBA
 	add ax, 2											;Skip header
-	mov byte [lvlload_error], lvlload_error_disk		;Get the error code ready
-	lvlload_loop:										;
+	mov byte [lvldataload_error], lvlload_error_disk	;Get the error code ready
+	lvldataload_loop:									;
 		call diskrlba									;Read data from disk to buffer
 		;jc lvlload_end									;Abort on disk error
 		inc ax											;Increment sector counter
@@ -612,24 +643,23 @@ lvlload:
 		shr cx, 4										;
 		mov es, cx										;
 		mov cx, 512										;We will be copying 512 bytes
-		mov si, lvlload_buf								;From the data buffer
+		mov si, lvldataload_buf							;From the data buffer
 		cld												;Clear direction flag
 		rep movsb										;Copy data
 		pop es											;Restore es
-		cmp ax, [lvlload_endsector]						;Compare current sector with endsector value
-		jb lvlload_loop									;Loop when less or equal
-	mov byte [lvlload_error], lvlload_error_none		;Exit without error
-	lvlload_end:										;
+		cmp ax, [lvldataload_endsector]					;Compare current sector with endsector value
+		jb lvldataload_loop								;Loop when less or equal
+	mov byte [lvldataload_error], lvlload_error_none	;Exit without error
+	lvldataload_end:									;
 	pop es
 	popa
+	mov al, [lvldataload_error]
 	popf
-	mov al, [lvlload_error]
 	ret
-	lvlload_lba: dw 0				;Initial LBA
-	lvlload_endsector: dw 0			;Sector ending the read
-	lvlload_error: db 0				;Error returned on exit
-	lvlload_magic: db "soko lvl"	;Proper magic string
-	lvlload_buf: times 512 db 0		;Data buffer
+	lvldataload_lba: dw 0				;Initial LBA
+	lvldataload_endsector: dw 0			;Sector ending the read
+	lvldataload_error: db 0				;Error returned on exit
+	lvldataload_buf: times 512 db 0		;Data buffer
 	lvlload_error_none equ 0		;No error
 	lvlload_error_disk equ 1		;Disk operation error
 	lvlload_error_magic equ 2		;Bad magic string
