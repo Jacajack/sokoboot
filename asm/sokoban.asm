@@ -589,22 +589,31 @@ lvlload:
 	add ax, [lvlload_lba]								;Add sector amount to inital level LBA
 	add ax, 2											;And don't forget to skip two bytes of header
 	mov [lvlload_endsector], ax							;Store end sector in memory
-	mov bx, lvldata_map									;Setup es to be able to address map data as one segment
-	shr bx, 4											;
+
+	mov bx, ds											;Setup es to be able to address map data as one segment
 	mov es, bx											;
-	mov bx, 0											;
+	mov bx, lvlload_buf									;
+	mov di, 0											;Reset destination counter
 	mov dl, [boot_drive]								;We are reading from boot drive
 	mov dh, 1											;We are reading one sector at a time
 	mov ax, [lvlload_lba]								;Load initial LBA
 	add ax, 2											;Skip header
 	mov byte [lvlload_error], lvlload_error_disk		;Get the error code ready
 	lvlload_loop:										;
-	call diskrlba										;Read data from disk
-	;jc lvlload_end										;Abort on disk error
-	add bx, 512											;Add 512 to memory pointer
-	inc ax												;Increment sector counter
-	cmp ax, [lvlload_endsector]							;Compare current sector with endsector value
-	jb lvlload_loop										;Loop when less or equal
+		call diskrlba									;Read data from disk to buffer
+		;jc lvlload_end									;Abort on disk error
+		inc ax											;Increment sector counter
+		push es											;Store es (used for both mcmpy and disk loader)
+		mov cx, lvldata_map								;Load map data address into cx and turn it into offset
+		shr cx, 4										;
+		mov es, cx										;
+		mov cx, 512										;We will be copying 512 bytes
+		mov si, lvlload_buf								;From the data buffer
+		cld												;Clear direction flag
+		rep movsb										;Copy data
+		pop es											;Restore es
+		cmp ax, [lvlload_endsector]						;Compare current sector with endsector value
+		jb lvlload_loop									;Loop when less or equal
 	mov byte [lvlload_error], lvlload_error_none		;Exit without error
 	lvlload_end:										;
 	pop es
@@ -616,6 +625,7 @@ lvlload:
 	lvlload_endsector: dw 0			;Sector ending the read
 	lvlload_error: db 0				;Error returned on exit
 	lvlload_magic: db "soko lvl"	;Proper magic string
+	lvlload_buf: times 512 db 0		;Data buffer
 	lvlload_error_none equ 0		;No error
 	lvlload_error_disk equ 1		;Disk operation error
 	lvlload_error_magic equ 2		;Bad magic string
@@ -626,6 +636,8 @@ boot_drive: db 0
 %include "gfxutils.asm"
 %include "diskutils.asm"
 %include "stdio.asm"
+
+mesg_nl: db 13, 10, 0
 
 tile_air equ 0
 tile_wall equ 1
@@ -659,7 +671,7 @@ lvldata:
 	lvldata_flags: dw 0, 0
 	lvldata_next: dw 0
 	lvldata_reserved: times 1024 - ( $ - lvldata ) db 0
-	lvldata_map: times 65536 - ( $ - lvldata ) db 1
+	lvldata_map: times 65536 - ( $ - lvldata ) db 0
 
 ;Pad out to 9 tracks
 times 9 * 18 * 512 - ( $ - $$ ) db 0
