@@ -346,6 +346,10 @@ movplayer:
 	mov cx, [lvldata_playery]		;
 	mov bx, [lvldata_camx]			;And camera position
 	mov dx, [lvldata_camy]			;
+	add bx, 1						;Add 1 to both x and y camera position
+	jc movplayer_end				;On carry - abort
+	add dx, 1						;
+	jc movplayer_end				;On carry - abort
 	movplayer_cam_ckl:				;
 	sub ax, bx						;Check if player is standing on the edge of viewport
 	jnz movplayer_cam_cku			;If so, move camera, else continue checking
@@ -359,9 +363,9 @@ movplayer:
 	mov cx, [lvldata_playery]		;
 	mov bx, [lvldata_camx]			;And camera position
 	mov dx, [lvldata_camy]			;
-	add bx, viewport_width			;Add viewport size to camer position
+	add bx, viewport_width - 2		;Add viewport size - 2 to camer position
 	jo movplayer_end				;Cancel on overflow
-	add dx, viewport_height			;
+	add dx, viewport_height - 2		;
 	jo movplayer_end				;
 	sub bx, ax						;Check if player is standing on the edge of viewport
 	jnz movplayer_cam_ckd			;If so, move camera, else continue checking
