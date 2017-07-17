@@ -9,6 +9,7 @@
 %include "stdio/gotext.asm"
 %include "stdio/kbhit.asm"
 %include "stdio/putc.asm"
+%include "stdio/putctr.asm"
 %include "stdio/putdec.asm"
 %include "stdio/puthexb.asm"
 %include "stdio/puthexw.asm"
