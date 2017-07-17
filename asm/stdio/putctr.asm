@@ -28,7 +28,7 @@ putctr:
 		int 0x10
 		dec bx
 		jmp putctr_pad_loop
-	putctr_pad_end
+	putctr_pad_end:
 	mov si, di
 	mov ah, 0xe
 	putctr_loop:
