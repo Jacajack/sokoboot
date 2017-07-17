@@ -14,5 +14,6 @@
 %include "stdio/puthexb.asm"
 %include "stdio/puthexw.asm"
 %include "stdio/puts.asm"
+%include "stdio/repchr.asm"
 
 %endif
