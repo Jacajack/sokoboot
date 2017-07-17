@@ -15,6 +15,9 @@ mov sp, bp
 lvlprompt:
 	call gotext
 	call cls
+	mov cx, 80
+	mov al, '-'
+	call repchr
 	mov si, mesg_levelnum_prompt
 	call puts
 	mov si, lvlprompt_buf
@@ -39,7 +42,7 @@ lvlprompt:
 	call puts
 	call getc
 	jmp lvlprompt
-mesg_levelnum_prompt: db "Please specify from where level should be loaded: ", 13, 10, "-> ", 0
+mesg_levelnum_prompt: db "Please specify level location on disk: ", 13, 10, "-> ", 0
 mesg_lvlerr: db  13, 10, "Error: ", 0
 mesg_keyretry: db 13, 10, "Press any key to retry", 13, 10, 0
 lvlprompt_buf: times 32 db 0
