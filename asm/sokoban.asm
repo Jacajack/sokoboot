@@ -48,26 +48,85 @@ mesg_keyretry: db 13, 10, "Press any key to retry", 13, 10, 0
 lvlprompt_buf: times 32 db 0
 lvlok:
 
-;First of all, enter 13h graphics mode
-mov al, 0x13
-mov ah, 0x0
-int 0x10
-
-;Setup color palette
-call palsetup
-
-;Find player on the map
-call findplayer
-
-;Draw whole map for the first time
-call drawmap
-
-;Gameloop
-gameloop:
-call getc
-call kbaction
-jmp gameloop
+call game
+int 0x19
 jmp $
+
+
+;This is the routine that should be called in order to start the game itself
+;return al - if 0 game was exited
+game:
+	pushf
+	pusha
+	mov byte [game_quitrq], 0		;Reset the quit request flag
+	mov al, 0x13					;Enter 13h graphics mode
+	mov ah, 0x0						;
+	int 0x10						;
+	call palsetup					;Setup color palette
+	call findplayer					;Find player on map
+	call drawmap					;Draw whole map for the start
+	game_loop:						;The game loop
+		call ckwin					;Check if level is finished
+		cmp al, 1					;If so, quit loop
+		je game_win					;
+		cmp byte [game_quitrq], 0	;Check if there's a quit request
+		jne game_quit				;If so, quit
+		call getc					;Get keypress
+		call kbaction				;Process keyboard input
+		jmp game_loop				;Loop
+	game_win:						;
+	call gotext						;Go back to text mode
+	popa							;
+	mov al, 1						;AL = 1 - game won
+	popf							;
+	ret								;
+	game_quit:						;
+	call gotext						;Go back to text mode
+	popa							;
+	mov al, 0						;AL = 0 - game quit
+	popf							;
+	ret								;
+	game_quitrq: db 0
+
+
+;Checks if player has already won the game
+;If there's a box that isn't placed on socket then game still lasts
+;al - 1 if game is won
+ckwin:
+	pushf
+	pusha
+	push fs								;Store fs
+	mov bx, lvldata_map					;We want to address whole map as single segment
+	shr bx, 4							;
+	mov fs, bx							;
+	mov ax, 0							;Clear loop counter
+	ckwin_l1:							;Horizontal loop
+		cmp ax, [lvldata_width]			;Check boundary
+		je ckwin_win					;If we reached this - the game has ended
+		xor cx, cx						;Clear vertical counter
+		ckwin_l2:						;
+			cmp cx, [lvldata_height]	;Check boundary
+			je ckwin_l2_end				;
+			call getmapaddr				;Get current tile address
+			cmp byte [fs:bx], tile_box	;Check if it's box
+			je ckwin_end 				;If so, game still lasts
+			inc cx						;Increment counter
+			jmp ckwin_l2				;Loop
+		ckwin_l2_end:					;
+		inc ax							;Increment counter
+		jmp ckwin_l1					;Loop
+	ckwin_win:							;Win exit point
+	pop fs								;
+	popa								;
+	mov al, 1							;AL set to 1 on win
+	popf								;
+	ret									;
+	ckwin_end:							;Normal exit point
+	pop fs								;
+	popa								;
+	mov al, 0							;AL set to 0 meaning game's in progress
+	popf								;
+	ret									;
 
 ;Manage ingame key actions
 ;ax - ASCII code and scancode
