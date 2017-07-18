@@ -6,6 +6,8 @@
 ;dl - drive number
 ;dh - sector count
 ;es:bx - data addresses
+;df - if set, errors aren't critical
+;return cf - set on error
 diskrlba:
 	pushf
 	pusha
@@ -25,10 +27,18 @@ diskrlba:
 	mov cl, [diskrlba_s]			;Load CHS
 	mov ch, [diskrlba_c]			;
 	mov dh, [diskrlba_h]			;
-	call diskrchs
-	popa
-	popf
-	ret
+	call diskrchs					;
+	jc diskrlba_err					;Exit either normally or with CF set
+	diskrlba_end:					;Normal exit
+	popa							;
+	popf							;
+	clc								;
+	ret								;
+	diskrlba_err:					;Exit with error
+	popa							;
+	popf							;
+	stc								;
+	ret								;
 	diskrlba_s: dw 0			;Sector number
 	diskrlba_h: dw 0			;Head number
 	diskrlba_c: dw 0			;Cylinder number

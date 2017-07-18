@@ -3,10 +3,15 @@
 
 ;Disk error handler
 ;dl - disk number
+;df - if set disk errors aren't critical
 diskerr:
 	pushf
 	pusha
-	call gotext
+	pushf					;Get flags register into AX
+	pop ax					;
+	test ax, ( 1 << 10 )	;Check if direction flag is set
+	jnz diskerr_end			;If so, skip the handler and quit
+	call gotext				;
 	mov si, diskerr_mesg	;Load message address into si
 	call puts				;Display the message
 	mov ah, 1				;Get status of last operation
@@ -16,6 +21,7 @@ diskerr:
 	mov si, diskerr_mesg_nl	;Print new line
 	call puts				;
 	jmp $					;Endless loop
+	diskerr_end:
 	popa
 	popf
 	ret
