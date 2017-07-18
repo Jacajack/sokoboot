@@ -182,8 +182,8 @@ int infLoad( FILE *f )
 	{
 		if ( buf[0] != '~' ) continue; //Skip 'commented out' lines
 		lineok = 0;
-		lineok += sscanf( buf, "~name: \"%79[0-9a-zA-Z ]\"", lvl.name );
-		lineok += sscanf( buf, "~desc: \"%319[0-9a-zA-Z ]\"", lvl.desc );
+		lineok += sscanf( buf, "~name: \"%79[^\"\n\r]\"", lvl.name );
+		lineok += sscanf( buf, "~desc: \"%319[^\"\n\n]\"", lvl.desc );
 		lineok += sscanf( buf, "~next: %" SCNu16, &lvl.next );
 		lineok += sscanf( buf, "~last: %" SCNu8, &lvl.last );
 		lineok += sscanf( buf, "~nextjmp: %" SCNu16, &lvl.nextjmp );
