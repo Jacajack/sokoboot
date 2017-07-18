@@ -111,7 +111,7 @@ kbaction:
 		dw 'D', kbaction_player_mover
 		dw 'W', kbaction_player_moveu
 		dw 'S', kbaction_player_moved
-		dw 0x1b, kbaction_reload_level
+		dw 0x1b, kbaction_quit
 		kbaction_ascii_count equ 9
 	kbaction_scancode: ;And some additional scancodes list
 		dw 0x4b, kbaction_player_movel
@@ -120,7 +120,7 @@ kbaction:
 		dw 0x50, kbaction_player_moved
 		kbaction_scancode_count equ 4
 
-%include "keyactions.asm"
+%include "kbactions.asm"
 
 ;Plots a single pixel
 ;al - color
