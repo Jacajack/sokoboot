@@ -5,3 +5,4 @@ bin
 *.map
 *.swp
 lvlconv/lvlconv
+lvlconv/*.txt
