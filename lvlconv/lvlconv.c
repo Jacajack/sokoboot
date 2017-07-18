@@ -181,6 +181,7 @@ int infLoad( FILE *f )
 	while ( fgets( buf, sizeof buf, f ) != NULL )
 	{
 		if ( buf[0] != '~' ) continue; //Skip 'commented out' lines
+		lineok = 0;
 		lineok += sscanf( buf, "~name: \"%79[0-9a-zA-Z ]\"", lvl.name );
 		lineok += sscanf( buf, "~desc: \"%319[0-9a-zA-Z ]\"", lvl.desc );
 		lineok += sscanf( buf, "~next: %" SCNu16, &lvl.next );
@@ -253,7 +254,7 @@ int main( int argc, char **argv )
 		switch ( ec )
 		{
 			case INFLOAD_ERROR:
-				fprintf( stderr, "%s: warning - some level metadata skipped!\n", argv[0] );
+				fprintf( stderr, "%s: warning [%s] - some level metadata skipped!\n", argv[0], argv[1] );
 				break;
 		}
 	}
