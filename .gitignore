@@ -4,3 +4,4 @@ bin
 *.img
 *.map
 *.swp
+lvlconv/lvlconv

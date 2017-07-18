@@ -220,17 +220,25 @@ int main( int argc, char **argv )
 		exit( 1 );
 	}
 
-	if ( argc < 2 )
+	if ( argc == 1 )
 	{
-		fprintf( stderr, "%s: please specify input file name!\n", argv[0] );
+		fprintf( stderr, 	"%s: please specify input file name!\n" \
+							"\tUsage: %s infile [outfile]\n", argv[0], argv[0] );
 		exit( 1 );
 	}
 
 	infile = fopen( argv[1], "r" );
+	if ( argv[2] != NULL ) outfile = fopen( argv[2], "w" );
 
 	if ( infile == NULL )
 	{
 		fprintf( stderr, "%s: cannot open input file!\n", argv[0] );
+		exit( 1 );
+	}
+
+	if ( outfile == NULL )
+	{
+		fprintf( stderr, "%s: cannot open output file!\n", argv[0] );
 		exit( 1 );
 	}
 
@@ -283,6 +291,7 @@ int main( int argc, char **argv )
 	memcpy( lvl.magic, "soko lvl", 8 );
 
 	//Output raw level data
+	bytecnt = 0;
 	for ( i = 0; i < sizeof lvl; i++ ) fputc( lvl.raw[i], outfile );
 	for ( i = 0; i < lvl.height; i++ )	
 	{
@@ -296,5 +305,9 @@ int main( int argc, char **argv )
 	//Pad out to full sectors
 	bytecnt = ( lvl.width * lvl.height / 512 + 1 ) * 512 - bytecnt;
 	while ( bytecnt-- ) fputc( 0, outfile );
+
+	fclose( infile );
+	fclose( outfile );
+	return 0;
 }
 
