@@ -196,11 +196,17 @@ drawtile:
 	cmp cx, dx				;Compare tile y position with camera (up)
 	jb drawtile_end			;Abort when below
 	add bx, viewport_width	;Add viewport dimensions to camera location
+	jo drawtile_end			;Quit on overflow
 	add dx, viewport_height	;
+	jo drawtile_end			;Quit on overflow
 	cmp ax, bx				;Compare tile x position with viewport boundary (right)
 	jae drawtile_end		;Abort when exceeds
 	cmp cx, dx				;Compare tile y position with viewport boundary (down)
 	jae drawtile_end		;Abort when exceeds
+	cmp ax, [lvldata_width]	;Compare tile position width map size
+	jae drawtile_end		;Abort if exceeds
+	cmp cx, [lvldata_height];
+	jae drawtile_end		;Abort if exceeds
 	mov bx, lvldata_map		;
 	shr bx, 4				;
 	mov fs, bx				;
