@@ -24,6 +24,7 @@ menu:
 	jmp menu_load				;Load level
 	menu_auto:					;Automatic level load
 	call lvlgetnext				;
+	jc menu_last				;Handle last level exception
 	mov bx, ax					;Make copy of ax (often used for exit codes)
 	menu_load:					;Load level data
 	call lvlinfoload			;Load metadata
@@ -56,7 +57,20 @@ menu:
 	call strfetch				;
 	call putctr					;And also print it in the middle
 	call getc					;Wait for user reaction
-	jmp menu_manual				;Jump to manual level loading
+	jmp menu_manual				;Jump to manual level loadingI
+	menu_last:					;
+	call cls					;Clear screen
+	mov ah, 2					;Put cursor at line 11
+	mov bh, 0					;
+	mov dh, 11					;
+	mov dl, 0					;
+	int 0x10					;
+	mov si, menu_last_mesg		;Print a message and congratunlations
+	call putctr					;
+	mov si, menu_congrat_mesg	;
+	call putctr					;
+	call getc					;Wait for keypress
+	jmp menu_manual				;Go back to level prompt
 	popa
 	popf
 	ret
@@ -67,6 +81,8 @@ menu:
 		db "NO VALID LEVEL DATA", 0
 		db "RESERVED", 0
 		db "LEVEL TOO BIG", 0
+	menu_last_mesg: db "THIS WAS THE LAST LEVEL", 13, 10, 0
+	menu_congrat_mesg: db "CONGRATULATIONS!", 13, 10, 0
 
 ;Load next level according to information included in current level's metadata
 ;return ax - LBA of next level
