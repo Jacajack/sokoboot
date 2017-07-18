@@ -39,7 +39,6 @@ diskwlba:
 	popf							;
 	stc								;
 	ret								;
-	diskwlba_err:
 	diskwlba_s: dw 0			;Sector number
 	diskwlba_h: dw 0			;Head number
 	diskwlba_c: dw 0			;Cylinder number
