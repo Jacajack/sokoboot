@@ -15,6 +15,9 @@ atoi:
 	mov bx, 0				;Clear character register
 	mov cx, 10				;Multiplier
 	mov dl, 0				;Register for 'bad character' flag
+	mov bl, [si]			;If string is empty - error
+	test bl, bl				;
+	jz atoi_abort			;
 	atoi_l:					;Main loop
 		mov bl, [si]		;Get character from string
 		test bl, bl			;Check if it's zero
@@ -23,11 +26,13 @@ atoi:
 		jc atoi_bad			;On overroll, assume char to be bad
 		cmp bl, 9			;If the result is greater than 9
 		ja atoi_bad			;Also assume char to be bad
+		push dx
 		mul cx				;Multiply value register
+		pop dx
 		jo atoi_abort		;On overflow, assume string to be invalid
 		add ax, bx			;Add new character value to the buffer
 		atoi_ok:			;
-		test dl, 1			;Check if we've encountered any bad characters
+		test dl, dl			;Check if we've encountered any bad characters
 		jnz atoi_abort		;If so, abort
 		inc si				;Else, go on
 		jmp atoi_l			;Loop
