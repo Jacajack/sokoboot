@@ -1,10 +1,10 @@
 CC = gcc
 CFLAGS = -Wall
 
-all: clean lvlconv
+all: clean mklvl
 
-lvlconv: lvlconv.c
+mklvl: mklvl.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
-	-rm lvlconv
+	-rm mklvl

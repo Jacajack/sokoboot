@@ -21,13 +21,13 @@ resources/splash.bin:
 resources/sprites.bin:
 	./img2bin.py resources/sprites.png > resources/sprites.bin
 
-resources/levels.bin: lvlconv/lvlconv
+resources/levels.bin: mklvl/mklvl
 	./build-levels.sh
 
 resources: resources/levels.bin resources/sprites.bin resources/splash.bin
 
-lvlconv/lvlconv:
-	cd lvlconv && make all
+lmklvl/mklvl:
+	cd lmklvl && make all
 
 clean:
 	-rm -r bin
