@@ -2,7 +2,7 @@
 %define STDIO_STRFETCH
 
 ;Searches to nth string after si pointer
-;al - string number
+;ax - string number
 ;si - first string
 strfetch:
 	pushf
@@ -16,10 +16,10 @@ strfetch:
 			inc si				;Else seek char by char
 			jmp strfetch_l2		;Loop
 		strfetch_nul:			;
-		dec al					;Decrement ax
+		inc si					;
+		dec ax					;Decrement ax
 		jmp strfetch_l1			;Fetch another string
 	strfetch_end:				;
-	inc si						;Set si to point begining of next string
 	pop ax						;Only pop ax
 	popf
 	ret
