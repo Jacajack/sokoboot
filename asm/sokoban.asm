@@ -24,7 +24,7 @@ menu:
 	jmp menu_load				;Load level
 	menu_auto:					;Automatic level load
 	call lvlgetnext				;
-	mov bx, ax					;Make copy of ax (ofetn used for exit codes)
+	mov bx, ax					;Make copy of ax (often used for exit codes)
 	menu_load:					;Load level data
 	call lvlinfoload			;Load metadata
 	cmp al, 0					;If AL is not 0, handle the error
@@ -79,9 +79,11 @@ lvlgetnext:
 	mov ax, [lvlinfoload_lba]		;Get the current level LBA
 	add ax, [lvldata_nextjmp]		;Add relative address to it
 	jc lvlgetnext_abort				;On carry, abort
+	mov [lvlgetnext_lba], ax		;Store the LBA
 	cmp word [lvldata_nextjmp], 0	;If we've added 0, load absolute address
 	jne lvlgetnext_end				;
 	mov ax, [lvldata_next]			;
+	mov [lvlgetnext_lba], ax		;Store the LBA
 	lvlgetnext_end:					;
 	popa							;
 	mov ax, [lvlgetnext_lba]		;Load LBA back to ax
