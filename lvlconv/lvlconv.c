@@ -242,7 +242,10 @@ int main( int argc, char **argv )
 		exit( 1 );
 	}
 
-	
+
+	//Make sure that the level structure is empty
+	memset( &lvl, 0, sizeof lvl );
+
 	//Load metadata
 	ec = infLoad( infile );
 	if ( ec != INFLOAD_OK )
