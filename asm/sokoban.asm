@@ -556,7 +556,9 @@ movcam:
 ;return bx - address
 getmapaddr:
 	pushf
-	pusha
+	push ax							;Store registers
+	push cx							;
+	push dx							;
 	mov bx, cx						;Insert y position
 	push ax							;Store ax (used for mul)
 	mov ax, [lvldata_width]			;Multiply level width with y position
