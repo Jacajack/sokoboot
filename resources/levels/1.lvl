@@ -1,0 +1,15 @@
+~id: 1
+~name: "The beginning"
+~desc: "We shall check if the game works, don't we?"
+~nextjmp: 3
+    wwwww
+    w   w
+    w&  w
+  www  &ww
+  w  & & w
+www w ww w   wwwwwww
+w   w ww wwwww   ..w
+w &  &           ..w
+wwwww www w@ww   ..w
+    w     wwwwwwwwww
+    wwwwwww
