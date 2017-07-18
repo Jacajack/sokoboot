@@ -565,12 +565,12 @@ getmapaddr:
 	;jo $							;Game exception should be thrown here
 	pop ax							;Restore bx
 	add bx, ax						;Add x position to the result
-	mov [getmapaddr_addr], bx		;Temporarily store address in memory
-	popa							;
+	pop dx							;Restore registers
+	pop cx							;
+	pop ax							;
 	popf							;
-	mov bx, [getmapaddr_addr]		;Get address back from memory
 	ret
-	getmapaddr_addr: dw 0
+
 
 ;ax - level LBA address on disk
 ;return al - error code
