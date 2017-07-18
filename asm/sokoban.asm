@@ -11,47 +11,192 @@ mov ss, dx
 mov bp, 0xffff
 mov sp, bp
 
-;Load level (ugly!)
-lvlprompt:
-	call gotext
-	call cls
-	mov cx, 80
-	mov al, '-'
-	call repchr
-	mov si, mesg_levelnum_prompt
-	call puts
-	mov si, lvlprompt_buf
-	mov di, lvlprompt_buf + 32
-	call gets
-	call atoi
-	jc lvlprompt
-	mov cx, ax
-	call lvlinfoload
-	test al, al
-	jnz lvlbad
-	mov ax, cx
-	call lvldataload
-	test al, al
-	jnz lvlbad
-	jmp lvlok
-	lvlbad:
-	mov si, mesg_lvlerr
-	call puts
-	call puthexb
-	mov si, mesg_keyretry
-	call puts
-	call getc
-	jmp lvlprompt
-mesg_levelnum_prompt: db "Please specify level location on disk: ", 13, 10, "-> ", 0
-mesg_lvlerr: db  13, 10, "Error: ", 0
-mesg_keyretry: db 13, 10, "Press any key to retry", 13, 10, 0
-lvlprompt_buf: times 32 db 0
-lvlok:
-
-call game
-int 0x19
+call menu
 jmp $
 
+;This is the main menu interacting with user and controlling the game
+menu:
+	pushf
+	pusha
+	menu_manual:				;Manual level load
+	call lvlprompt				;
+	mov bx, ax					;Make copy of ax (often used for exit codes)
+	jmp menu_load				;Load level
+	menu_auto:					;Automatic level load
+	call lvlgetnext				;
+	mov bx, ax					;Make copy of ax (ofetn used for exit codes)
+	menu_load:					;Load level data
+	call lvlinfoload			;Load metadata
+	cmp al, 0					;If AL is not 0, handle the error
+	jne menu_load_err			;
+	mov ax, bx					;Restore AX from BX
+	call lvldataload			;Load the map data
+	cmp al, 0					;Handle error, if any
+	jne menu_load_err			;
+	call lvldispinfo			;Display information about level
+	cmp al, 0					;Depending on uer readcion, load new level or start game
+	je menu_manual				;
+	call game					;
+	cmp al, 0					;On win, automatically load next level
+	je menu_manual				;Else, prompt user for next level location
+	jmp menu_auto				;
+	menu_load_err:				;The error handler
+	call cls					;Clear screen
+	push ax						;Store error code
+	mov ah, 2					;Put cursor at line 11
+	mov bh, 0					;
+	mov dh, 11					;
+	mov dl, 0					;
+	int 0x10					;
+	pop ax						;Restore error code
+	xor ah, ah					;Clear upper part
+	mov si, menu_load_err_mesg	;Print error header in the middle
+	call putctr					;	
+	mov si, menu_load_err_list	;Get proper error message
+	call strfetch				;
+	call putctr					;And also print it in the middle
+	call getc					;Wait for user reaction
+	jmp menu_manual				;Jump to manual level loading
+	popa
+	popf
+	ret
+	menu_load_err_mesg: db "LEVEL CANNOT BE LOADED", 13, 10, 0
+	menu_load_err_list:
+		db "NONE", 0
+		db "DISK ERROR", 0
+		db "NO VALID LEVEL DATA", 0
+		db "RESERVED", 0
+		db "LEVEL TOO BIG", 0
+
+;Load next level according to information included in current level's metadata
+;return ax - LBA of next level
+;return cf - if set, next level cannot be loaded
+lvlgetnext:
+	pushf
+	pusha
+	cmp byte [lvldata_last], 0		;Check if it's last level
+	jne lvlgetnext_abort			;If so, abort
+	mov ax, [lvlinfoload_lba]		;Get the current level LBA
+	add ax, [lvldata_nextjmp]		;Add relative address to it
+	jc lvlgetnext_abort				;On carry, abort
+	cmp word [lvldata_nextjmp], 0	;If we've added 0, load absolute address
+	jne lvlgetnext_end				;
+	mov ax, [lvldata_next]			;
+	lvlgetnext_end:					;
+	popa							;
+	mov ax, [lvlgetnext_lba]		;Load LBA back to ax
+	popf							;
+	clc								;Clear carry on success
+	ret								;
+	lvlgetnext_abort:				;
+	popa							;
+	mov ax, 0						;Set ax to 0 on fail
+	popf							;
+	stc								;And set carry flag
+	ret								;
+	lvlgetnext_lba: dw 0			;Place for temporary LBA
+
+;Prompt user for level location
+;return ax - LBA
+lvlprompt:
+	pushf						;
+	pusha						;
+	lvlprompt_loop:				;Jump here if atoi fails
+	call gotext					;Switch to text mode
+	call cls					;Clear screen
+	mov si, lvlprompt_header	;Print header in the middle
+	call putctr					;
+	mov cx, 80					;And horizontal line
+	mov al, '-'					;
+	call repchr					;
+	mov si, lvlprompt_prompt	;And display prompt characer
+	call puts					;
+	mov si, lvlprompt_buf		;Setup buffer for gets
+	mov di, lvlprompt_buf + 32	;
+	call gets					;Call gets
+	call atoi					;Convert read string into number
+	jc lvlprompt_loop			;If something went wrong, repeat
+	mov [lvlprompt_lba], ax		;Store the LBA
+	popa						;
+	mov ax, [lvlprompt_lba]		;Restore it to AX
+	popf						;
+	ret
+	lvlprompt_lba: dw 0
+	lvlprompt_header: db "PLEASE SPECIFY LEVEL LOCATION ON THE DISK", 13, 10, 0
+	lvlprompt_prompt: db "> ", 0
+	lvlprompt_buf: times 64 db 0
+
+;Display informations about current level on screen
+;return al - 1 if user wants to continue, else 0
+lvldispinfo:
+	pushf
+	pusha
+	call cls						;Clear screen
+	mov si, lvldata_name			;Display level name centered on the screen
+	call putctr						;
+	mov si, lvldispinfo_nl			;
+	call puts						;
+	mov cx, 80						;
+	mov al, '-'						;Display horizontal bar
+	call repchr						;
+	mov si, lvldispinfo_id			;Display level id
+	call puts						;
+	mov ax, [lvldata_id]			;
+	call putdec						;
+	mov si, lvldispinfo_nl			;
+	call puts						;
+	mov si, lvldispinfo_size		;Dispalay level dimensions
+	call puts						;
+	mov ax, [lvldata_width]			;
+	call putdec 					;
+	mov si, lvldispinfo_size_x		;
+	call puts						;
+	mov ax, [lvldata_height]		;
+	call putdec						;
+	mov si, lvldispinfo_nl			;
+	call puts						;
+	mov si, lvldispinfo_location	;Display level location
+	call puts						;
+	mov ax, [lvlinfoload_lba]		;
+	call putdec						;
+	mov si, lvldispinfo_nl			;
+	call puts						;
+	mov si, lvldispinfo_desc		;Display description
+	call puts						;
+	mov si, lvldata_desc			;
+	call puts						;
+	mov si, lvldispinfo_nl			;And additional newlines
+	call puts						;
+	call puts						;
+	mov si, lvldispinfo_keys		;Display message about expected keys
+	call puts
+	lvldispinfo_loop:				;Key-awaiting loop
+		call getc					;Get character
+		cmp al, 10					;If it's CR or LF
+		je lvldispinfo_cont			;Quit with continue status
+		cmp al, 13					;
+		je lvldispinfo_cont			;
+		cmp al, 0x1b				;If it's ESC
+		je lvldispinfo_quit			;Quit with quit status
+		jmp lvldispinfo_loop		;Loop
+	lvldispinfo_quit:				;
+	mov byte [lvldispinfo_ec], 0	;User doesn't want to continue
+	jmp lvldispinfo_end				;
+	lvldispinfo_cont:				;User wants to continue
+	mov byte [lvldispinfo_ec], 1	;
+	lvldispinfo_end:				;
+	popa							;
+	mov byte al, [lvldispinfo_ec]	;Restore exit status
+	popf
+	ret
+	lvldispinfo_ec: db 0
+	lvldispinfo_nl: db 13, 10, 0
+	lvldispinfo_id: db "Level: ", 0
+	lvldispinfo_desc: db "Description: ", 0
+	lvldispinfo_size: db "Dimensions: ", 0
+	lvldispinfo_size_x: db " x ", 0
+	lvldispinfo_location: db "Location at disk: ", 0
+	lvldispinfo_keys: db "Press enter to play or ESC to quit", 0
 
 ;This is the routine that should be called in order to start the game itself
 ;return al - if 0 game was exited
@@ -646,15 +791,18 @@ lvlinfoload:
 	mov dh, 1											;Read two sectors of header
 	mov dl, [boot_drive]								;We are reading from booy drive
 	mov byte [lvlinfoload_error], lvlload_error_disk	;Get the error number ready
+	std													;Ignore disk errors
 	call diskrlba										;Read 1st sector from disk
-	;jc lvlload_end										;Abort on error
+	jc lvlinfoload_end									;Abort on error
 	inc ax												;Increment sector number
 	add bx, 512											;Increment output address
+	std													;Ignore disk errors
 	call diskrlba										;Read second sector
-	;jc lvlinfoload_end									;Abort on error
+	jc lvlinfoload_end									;Abort on error
 	mov si, lvlinfoload_magic							;Validate magic string
 	mov di, lvldata_magic								;
 	mov cx, 8											;We will be comparing 8 bytes
+	cld
 	rep cmpsb											;
 	mov byte [lvlinfoload_error], lvlload_error_magic	;Get error number ready
 	jnz lvlinfoload_end									;Abort if doesn't match
@@ -705,8 +853,9 @@ lvldataload:
 	add ax, 2											;Skip header
 	mov byte [lvldataload_error], lvlload_error_disk	;Get the error code ready
 	lvldataload_loop:									;
+		std												;Ignore disk errors
 		call diskrlba									;Read data from disk to buffer
-		;jc lvlload_end									;Abort on disk error
+		jc lvldataload_end									;Abort on disk error
 		inc ax											;Increment sector counter
 		push es											;Store es (used for both mcmpy and disk loader)
 		mov cx, lvldata_map								;Load map data address into cx and turn it into offset
