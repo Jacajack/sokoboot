@@ -1,6 +1,7 @@
 ~id: 2
 ~name: "The second trial"
 ~desc: "We shall also check if we can get there!"
+~campos: 0, 0
 ~last: 1
     wwwww
     w   w
