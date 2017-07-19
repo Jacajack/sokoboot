@@ -236,6 +236,26 @@ lvldispinfo:
 	lvldispinfo_boxcnt: db "Box count: ", 0
 	lvldispinfo_keys: db "Press enter to play or ESC to quit", 0
 
+;Print information about current game status at the bottom of the screen
+gamestatus:
+	pushf
+	pusha
+	mov ah, 2						;Put cursor at line 255
+	mov bh, 0						;
+	mov dh, 24						;
+	mov dl, 0						;
+	int 0x10						;
+	mov bl, 255						;White text
+	mov si, gamestatus_box_mesg	;Print the rest of the message
+	call puts						;
+	mov ax, [game_boxleft]			;Print box count
+	call putdec						;
+	popa
+	popf
+	ret
+	gamestatus_box_mesg: db "Boxes left: ", 0
+	
+
 ;This is the routine that should be called in order to start the game itself
 ;return al - if 0 game was exited
 game:
@@ -249,8 +269,11 @@ game:
 	call findplayer					;Find player on map
 	call drawmap					;Draw whole map for the start
 	game_loop:						;The game loop
-		call ckwin					;Check if level is finished
-		cmp al, 1					;If so, quit loop
+		call mapcnt					;Count tiles on map
+		mov ax, [mapcnt_box]		;Get box count
+		mov [game_boxleft], ax		;
+		call gamestatus				;
+		cmp word [mapcnt_box], 0	;If it's 0, the game is finished
 		je game_win					;
 		cmp byte [game_quitrq], 0	;Check if there's a quit request
 		jne game_quit				;If so, quit
@@ -268,12 +291,12 @@ game:
 	popf							;
 	ret								;
 	game_quitrq: db 0
+	game_boxleft: dw 0
 
-
-;Checks if player has already won the game
-;If there's a box that isn't placed on socket then game still lasts
-;al - 1 if game is won
-ckwin:
+;Counts how many times does given tile appear on map
+;dl - tile to count
+;return ax - tile count
+mapcnt:
 	pushf
 	pusha
 	push fs								;Store fs
@@ -281,33 +304,50 @@ ckwin:
 	shr bx, 4							;
 	mov fs, bx							;
 	mov ax, 0							;Clear loop counter
-	ckwin_l1:							;Horizontal loop
+	mapcnt_l0:							;
+		cmp ax, mapcnt_idlim			;Loop boundary is ID limir
+		jae mapcnt_l0_end				;
+		mov bx, ax						;Backup loop counter
+		shl bx, 1						;Multiply loop counter with 2
+		mov word [mapcnt_cnt + bx], 0	;Clear counter
+		inc ax							;Increment loop counter
+		jmp mapcnt_l0					;
+	mapcnt_l0_end:						;
+	mov ax, 0							;Clear loop counter
+	mapcnt_l1:							;Horizontal loop
 		cmp ax, [lvldata_width]			;Check boundary
-		je ckwin_win					;If we reached this - the game has ended
+		je mapcnt_end					;If we reached this - quit routine
 		xor cx, cx						;Clear vertical counter
-		ckwin_l2:						;
+		mapcnt_l2:						;
 			cmp cx, [lvldata_height]	;Check boundary
-			je ckwin_l2_end				;
+			je mapcnt_l2_end			;
 			call getmapaddr				;Get current tile address
-			cmp byte [fs:bx], tile_box	;Check if it's box
-			je ckwin_end 				;If so, game still lasts
+			mov bl, [fs:bx]				;Get current tile
+			cmp bl, mapcnt_idlim		;Check if tile is below ID limit
+			ja mapcnt_skip				;
+			shl bl, 1					;Mutiply tile id with 2 (counters are words)
+			xor bh, bh					;Clear upper bx part
+			inc word [mapcnt_cnt + bx]	;Increment proper counter
+			mapcnt_skip:				;
 			inc cx						;Increment counter
-			jmp ckwin_l2				;Loop
-		ckwin_l2_end:					;
+			jmp mapcnt_l2				;Loop
+		mapcnt_l2_end:					;
 		inc ax							;Increment counter
-		jmp ckwin_l1					;Loop
-	ckwin_win:							;Win exit point
+		jmp mapcnt_l1					;Loop
+	mapcnt_end:							;Normal exit point
 	pop fs								;
 	popa								;
-	mov al, 1							;AL set to 1 on win
 	popf								;
 	ret									;
-	ckwin_end:							;Normal exit point
-	pop fs								;
-	popa								;
-	mov al, 0							;AL set to 0 meaning game's in progress
-	popf								;
-	ret									;
+	mapcnt_cnt:
+	mapcnt_air: dw 0
+	mapcnt_wall: dw 0
+	mapcnt_box: dw 0
+	mapcnt_socket: dw 0
+	mapcnt_socketbox: dw 0
+	mapcnt_player: dw 0
+	mapcnt_socketplayer: dw 0
+	mapcnt_idlim equ 6
 
 ;Manage ingame key actions
 ;ax - ASCII code and scancode
