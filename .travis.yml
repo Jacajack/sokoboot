@@ -4,6 +4,7 @@ before_install:
     - sudo apt-get update
 install:
     - sudo apt-get install nasm python moreutils
+    - pip install PIL
 script:
     - make
 after_success:
