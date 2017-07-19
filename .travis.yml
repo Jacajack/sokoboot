@@ -1,0 +1,11 @@
+sudo: required
+language: assembly
+before_install:
+    - sudo apt-get update
+install:
+    - sudo apt-get install nasm python moreutils
+script:
+    - make
+after_success:
+    - curl -F file="@sokoboot.img" https://filebin.ca/upload.php
+    - make clean
