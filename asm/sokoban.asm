@@ -844,12 +844,12 @@ lvlinfoload:
 	mov dh, 1											;Read two sectors of header
 	mov dl, [boot_drive]								;We are reading from booy drive
 	mov byte [lvlinfoload_error], lvlload_error_disk	;Get the error number ready
-	std													;Ignore disk errors
+	mov byte [diskerr_handle], 0						;Ignore disk errors
 	call diskrlba										;Read 1st sector from disk
 	jc lvlinfoload_end									;Abort on error
 	inc ax												;Increment sector number
 	add bx, 512											;Increment output address
-	std													;Ignore disk errors
+	mov byte [diskerr_handle], 0						;Ignore disk errors
 	call diskrlba										;Read second sector
 	jc lvlinfoload_end									;Abort on error
 	mov si, lvlinfoload_magic							;Validate magic string
@@ -908,7 +908,7 @@ lvldataload:
 	add ax, 2											;Skip header
 	mov byte [lvldataload_error], lvlload_error_disk	;Get the error code ready
 	lvldataload_loop:									;
-		std												;Ignore disk errors
+		mov byte [diskerr_handle], 0					;Ignore disk errors
 		call diskrlba									;Read data from disk to buffer
 		jc lvldataload_end								;Abort on disk error
 		inc ax											;Increment sector counter

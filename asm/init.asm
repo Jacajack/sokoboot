@@ -18,14 +18,14 @@ mov al, 0x00
 mov ah, 0x00
 int 0x16
 
-;SOME MENU HERE
-;FOR NOW, JUST LOAD THE GAME
+;Menu is currently in game, so let's just load everything
 mov dh, 1
 mov ch, 4
 mov cl, 1
 mov al, 18
 mov dl, [boot_drive]
 mov bx, 0x2900
+mov byte [diskerr_handle], 1
 call diskrchs
 jmp 0x2900
 
@@ -36,6 +36,7 @@ splashload:
 	pusha
 	push ds
 	push es
+	mov byte [diskerr_handle], 0			;Ignore disk errors - there may be holes in the image
 	mov ax, splash_sector					;Sector counter
 	mov cx, 0								;Address counter
 	splashload_l:							;
