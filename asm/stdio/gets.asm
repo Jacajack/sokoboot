@@ -26,6 +26,8 @@ gets:
 		je gets_addnul			;
 		cmp al, 13				;
 		je gets_addnul			;
+		cmp al, 9				;Skip tabs
+		je gets_skipchr			;
 		cmp si, di				;Check buffer bounds
 		jae gets_skipchr		;
 		mov ah, 0x0E			;Echo out typed in character
