@@ -4,5 +4,5 @@ bin
 *.img
 *.map
 *.swp
-mklvl/lvlconv
+mklvl/mklvl
 mklvl/*.txt
