@@ -30,15 +30,15 @@ menu:
 	call lvlinfoload			;Load metadata
 	cmp al, 0					;If AL is not 0, handle the error
 	jne menu_load_err			;
+	call lvldispinfo			;Display information about level
+	cmp al, 0					;Depending on uer readcion, load new level or start game
+	je menu_manual				;
 	mov ax, bx					;Restore AX from BX
 	call lvldataload			;Load the map data
 	cmp al, 0					;Handle error, if any
 	jne menu_load_err			;
-	call lvldispinfo			;Display information about level
-	cmp al, 0					;Depending on uer readcion, load new level or start game
-	je menu_manual				;
 	call game					;
-	call fadeout
+	call fadeout				;Fade screen out
 	cmp al, 0					;On win, automatically load next level
 	je menu_manual				;Else, prompt user for next level location
 	jmp menu_auto				;
