@@ -38,6 +38,7 @@ menu:
 	cmp al, 0					;Depending on uer readcion, load new level or start game
 	je menu_manual				;
 	call game					;
+	call fadeout
 	cmp al, 0					;On win, automatically load next level
 	je menu_manual				;Else, prompt user for next level location
 	jmp menu_auto				;
@@ -246,13 +247,11 @@ game:
 		call kbaction				;Process keyboard input
 		jmp game_loop				;Loop
 	game_win:						;
-	call gotext						;Go back to text mode
 	popa							;
 	mov al, 1						;AL = 1 - game won
 	popf							;
 	ret								;
 	game_quit:						;
-	call gotext						;Go back to text mode
 	popa							;
 	mov al, 0						;AL = 0 - game quit
 	popf							;
@@ -458,6 +457,34 @@ drawtile:
 	call drawsprite			;Draw sprite
 	drawtile_end:
 	pop fs
+	popa
+	popf
+	ret
+
+;Fadeout screen to black
+fadeout:
+	pushf
+	pusha
+	mov cl, 0					;Reset counter
+	fadeout_loop:				;
+		cmp cl, -64				;Bottom limit is -64
+		je fadeout_end			;
+		mov al, cl				;Tweak color palette using counter value 
+		mov ah, cl				;
+		mov bl, cl				;
+		call paltweak			;
+		push cx					;Store counter value
+		mov ah, 0				;Get system time
+		int 0x1a				;
+		mov bx, dx				;
+		fadeout_delay:			;Wait till it changes
+			int 0x1a			;
+			cmp dx, bx			;
+			je fadeout_delay	;
+		pop cx					;Restore counter
+		sub cl, 4				;Substract 8 from counter
+		jmp fadeout_loop		;
+	fadeout_end:
 	popa
 	popf
 	ret
