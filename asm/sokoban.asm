@@ -30,14 +30,15 @@ menu:
 	call lvlinfoload			;Load metadata
 	cmp al, 0					;If AL is not 0, handle the error
 	jne menu_load_err			;
+	call lvldispinfo			;Display information about level
+	cmp al, 0					;Depending on uer readcion, load new level or start game
+	je menu_manual				;
 	mov ax, bx					;Restore AX from BX
 	call lvldataload			;Load the map data
 	cmp al, 0					;Handle error, if any
 	jne menu_load_err			;
-	call lvldispinfo			;Display information about level
-	cmp al, 0					;Depending on uer readcion, load new level or start game
-	je menu_manual				;
 	call game					;
+	call fadeout				;Fade screen out
 	cmp al, 0					;On win, automatically load next level
 	je menu_manual				;Else, prompt user for next level location
 	jmp menu_auto				;
@@ -186,8 +187,16 @@ lvldispinfo:
 	mov si, lvldispinfo_nl			;And additional newlines
 	call puts						;
 	call puts						;
+	mov ah, 2						;Put cursor at line 23
+	mov bh, 0						;
+	mov dh, 23						;
+	mov dl, 0						;
+	int 0x10						;
+	mov al, '-'						;Display horizontal line
+	mov cx, 80						;
+	call repchr						;
 	mov si, lvldispinfo_keys		;Display message about expected keys
-	call puts
+	call putctr						;
 	lvldispinfo_loop:				;Key-awaiting loop
 		call getc					;Get character
 		cmp al, 10					;If it's CR or LF
@@ -238,13 +247,11 @@ game:
 		call kbaction				;Process keyboard input
 		jmp game_loop				;Loop
 	game_win:						;
-	call gotext						;Go back to text mode
 	popa							;
 	mov al, 1						;AL = 1 - game won
 	popf							;
 	ret								;
 	game_quit:						;
-	call gotext						;Go back to text mode
 	popa							;
 	mov al, 0						;AL = 0 - game quit
 	popf							;
@@ -450,6 +457,34 @@ drawtile:
 	call drawsprite			;Draw sprite
 	drawtile_end:
 	pop fs
+	popa
+	popf
+	ret
+
+;Fadeout screen to black
+fadeout:
+	pushf
+	pusha
+	mov cl, 0					;Reset counter
+	fadeout_loop:				;
+		cmp cl, -64				;Bottom limit is -64
+		je fadeout_end			;
+		mov al, cl				;Tweak color palette using counter value 
+		mov ah, cl				;
+		mov bl, cl				;
+		call paltweak			;
+		push cx					;Store counter value
+		mov ah, 0				;Get system time
+		int 0x1a				;
+		mov bx, dx				;
+		fadeout_delay:			;Wait till it changes
+			int 0x1a			;
+			cmp dx, bx			;
+			je fadeout_delay	;
+		pop cx					;Restore counter
+		sub cl, 4				;Substract 8 from counter
+		jmp fadeout_loop		;
+	fadeout_end:
 	popa
 	popf
 	ret
@@ -809,18 +844,18 @@ lvlinfoload:
 	mov dh, 1											;Read two sectors of header
 	mov dl, [boot_drive]								;We are reading from booy drive
 	mov byte [lvlinfoload_error], lvlload_error_disk	;Get the error number ready
-	std													;Ignore disk errors
+	mov byte [diskerr_handle], 0						;Ignore disk errors
 	call diskrlba										;Read 1st sector from disk
 	jc lvlinfoload_end									;Abort on error
 	inc ax												;Increment sector number
 	add bx, 512											;Increment output address
-	std													;Ignore disk errors
+	mov byte [diskerr_handle], 0						;Ignore disk errors
 	call diskrlba										;Read second sector
 	jc lvlinfoload_end									;Abort on error
 	mov si, lvlinfoload_magic							;Validate magic string
 	mov di, lvldata_magic								;
 	mov cx, 8											;We will be comparing 8 bytes
-	cld
+	cld													;
 	rep cmpsb											;
 	mov byte [lvlinfoload_error], lvlload_error_magic	;Get error number ready
 	jnz lvlinfoload_end									;Abort if doesn't match
@@ -829,6 +864,7 @@ lvlinfoload:
 	mul cx												;Multiply width and height
 	mov byte [lvlinfoload_error], lvlload_error_size	;Get error ready
 	jo lvlinfoload_end									;Error on overflow (level can be up to 65536 bytes long)
+	test ax, ax											;(ZF cannot be used)
 	jz lvlinfoload_end									;Also, jump when there's no data
 	mov byte [lvlinfoload_error], lvlload_error_none	;Exit without error
 	lvlinfoload_end:
@@ -854,6 +890,7 @@ lvldataload:
 	mul cx												;Multiply width and height
 	mov byte [lvldataload_error], lvlload_error_size	;Get error ready
 	jo lvldataload_end									;Error on overflow (level can be up to 65536 bytes long)
+	test ax, ax											;(ZF didn't work on my COMPAQ)
 	jz lvldataload_end									;Also, jump when there's no data
 	dec ax												;Decrement size in bytes
 	shr ax, 9											;Divide level size (in bytes) by 512
@@ -871,9 +908,9 @@ lvldataload:
 	add ax, 2											;Skip header
 	mov byte [lvldataload_error], lvlload_error_disk	;Get the error code ready
 	lvldataload_loop:									;
-		std												;Ignore disk errors
+		mov byte [diskerr_handle], 0					;Ignore disk errors
 		call diskrlba									;Read data from disk to buffer
-		jc lvldataload_end									;Abort on disk error
+		jc lvldataload_end								;Abort on disk error
 		inc ax											;Increment sector counter
 		push es											;Store es (used for both mcmpy and disk loader)
 		mov cx, lvldata_map								;Load map data address into cx and turn it into offset
@@ -907,6 +944,7 @@ boot_drive: db 0
 %include "gfxutils.asm"
 %include "diskutils.asm"
 %include "stdio.asm"
+%include "debug.asm"
 
 mesg_nl: db 13, 10, 0
 
