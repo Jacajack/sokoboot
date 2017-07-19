@@ -910,7 +910,7 @@ lvldataload:
 	lvldataload_loop:									;
 		std												;Ignore disk errors
 		call diskrlba									;Read data from disk to buffer
-		jc lvldataload_end									;Abort on disk error
+		jc lvldataload_end								;Abort on disk error
 		inc ax											;Increment sector counter
 		push es											;Store es (used for both mcmpy and disk loader)
 		mov cx, lvldata_map								;Load map data address into cx and turn it into offset
