@@ -53,6 +53,7 @@ union
 		uint16_t next;
 		uint8_t last;
 		uint16_t nextjmp; 
+		uint16_t boxcnt;
 	} __attribute__( ( __packed__ ) );
 
 	uint8_t raw[LVL_INF_SIZE];
@@ -320,6 +321,9 @@ int main( int argc, char **argv )
 		lvl.camx = LIMIT( 0, LIMIT( 0, MAP_WIDTH - VIEWPORT_WIDTH, lvl.width - VIEWPORT_WIDTH ) , lvl.playerx - VIEWPORT_WIDTH / 2 );
 		lvl.camy = LIMIT( 0, LIMIT( 0, MAP_HEIGHT - VIEWPORT_HEIGHT, lvl.height - VIEWPORT_HEIGHT ),lvl.playery - VIEWPORT_HEIGHT / 2 );
 	}
+
+	//Coutn boxes
+	lvl.boxcnt = mapCount( TILE_BOX ) + mapCount( TILE_SOCKETBOX );
 
 	//Set some crucial stuff in level header
 	memcpy( lvl.magic, "soko lvl", 8 );
