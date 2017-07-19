@@ -944,6 +944,7 @@ boot_drive: db 0
 %include "gfxutils.asm"
 %include "diskutils.asm"
 %include "stdio.asm"
+%include "debug.asm"
 
 mesg_nl: db 13, 10, 0
 
