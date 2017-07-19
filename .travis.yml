@@ -4,7 +4,8 @@ before_install:
     - sudo apt-get update
 install:
     - sudo apt-get install nasm python moreutils
-    - pip install PIL
+    - sudo pip install --upgrade pip
+    - sudo pip install Image
 script:
     - make
 after_success:
