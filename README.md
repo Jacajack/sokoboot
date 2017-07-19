@@ -1,5 +1,5 @@
 # sokoboot
-Sokoboot is a Sokoban type game bootable from floppy, written compeletly in i386 assembly.
+Sokoboot is a Sokoban type game bootable from floppy, written completely in i386 assembly.
 
 I develop Sokoboot in my free time, just for fun. Surprisingly, I managed to develop it into a rather functional game, but there are still tons of things to improve.<br>
 **Any suggestions and contributions are welcome, especially ones according graphical design.** :heart:
