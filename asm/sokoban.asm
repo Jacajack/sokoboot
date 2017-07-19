@@ -82,7 +82,7 @@ menu:
 		db "NONE", 0
 		db "DISK ERROR", 0
 		db "NO VALID LEVEL DATA", 0
-		db "RESERVED", 0
+		db "ATTEMPTED TO READ DATA OUTSIDE DISK", 0
 		db "LEVEL TOO BIG", 0
 	menu_last_mesg: db "THIS WAS THE LAST LEVEL", 13, 10, 0
 	menu_congrat_mesg: db "CONGRATULATIONS!", 13, 10, 0
@@ -842,6 +842,9 @@ lvlinfoload:
 	pusha
 	push es
 	mov [lvlinfoload_lba], ax							;Store level's disk LBA address
+	mov byte [lvlinfoload_error], lvlload_error_outside	;Get error ready
+	cmp word [lvlinfoload_lba], 2879 - 1				;Check if whole header is on disk
+	ja lvlinfoload_end									;If not, throw error
 	mov bx, ds											;Make es have value of ds
 	mov es, bx											;
 	mov bx, lvldata										;
@@ -888,6 +891,9 @@ lvldataload:
 	pusha
 	push es	
 	mov [lvldataload_lba], ax							;Store level's disk LBA address
+	mov byte [lvldataload_error], lvlload_error_outside	;Get error code ready
+	cmp word [lvldataload_lba], 2797					;Check if starting sector is on the disk
+	ja lvldataload_end									;If not, throw error
 	mov bx, ds											;Make es have value of ds
 	mov ax, [lvldata_width]								;Check level size
 	mov cx, [lvldata_height]							;
@@ -902,6 +908,9 @@ lvldataload:
 	add ax, [lvldataload_lba]							;Add sector amount to initial level LBA
 	add ax, 2											;And don't forget to skip two bytes of header
 	mov [lvldataload_endsector], ax						;Store end sector in memory
+	mov byte [lvldataload_error], lvlload_error_outside	;Get error ready
+	cmp word [lvldataload_endsector], 2797				;Check if end sector is on the disk
+	ja lvldataload_end									;If not, throw error
 	mov bx, ds											;Setup es to be able to address map data as one segment
 	mov es, bx											;
 	mov bx, lvldataload_buf								;
@@ -940,6 +949,7 @@ lvldataload:
 	lvldataload_buf: times 512 db 0		;Data buffer
 	lvlload_error_none equ 0		;No error
 	lvlload_error_disk equ 1		;Disk operation error
+	lvlload_error_outside equ 3		;Given LBA is outside the disk
 	lvlload_error_magic equ 2		;Bad magic string
 	lvlload_error_size equ 4		;Bad level size
 
