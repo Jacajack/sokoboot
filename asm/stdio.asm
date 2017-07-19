@@ -4,6 +4,7 @@
 ;Full set of stdio tools
 %include "stdio/atoi.asm"
 %include "stdio/cls.asm"
+%include "stdio/cursor.asm"
 %include "stdio/strfetch.asm"
 %include "stdio/getc.asm"
 %include "stdio/gets.asm"
