@@ -184,6 +184,12 @@ lvldispinfo:
 	call putdec						;
 	mov si, lvldispinfo_nl			;
 	call puts						;
+	mov si, lvldispinfo_boxcnt		;Display box count
+	call puts						;
+	mov ax, [lvldata_boxcnt]		;
+	call putdec						;
+	mov si, lvldispinfo_nl			;
+	call puts						;
 	mov si, lvldispinfo_desc		;Display description
 	call puts						;
 	mov si, lvldata_desc			;
@@ -227,6 +233,7 @@ lvldispinfo:
 	lvldispinfo_size: db "Dimensions: ", 0
 	lvldispinfo_size_x: db " x ", 0
 	lvldispinfo_location: db "Location at disk: ", 0
+	lvldispinfo_boxcnt: db "Box count: ", 0
 	lvldispinfo_keys: db "Press enter to play or ESC to quit", 0
 
 ;This is the routine that should be called in order to start the game itself
@@ -995,6 +1002,7 @@ lvldata:
 	lvldata_next: dw 0
 	lvldata_last: db 0
 	lvldata_nextjmp: dw 0
+	lvldata_boxcnt: dw 0
 	lvldata_reserved: times 1024 - ( $ - lvldata ) db 0
 	lvldata_map: times 65536 - ( $ - lvldata ) db 0
 
