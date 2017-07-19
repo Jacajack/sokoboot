@@ -5,10 +5,10 @@
 puthexw:
 	pushf
 	pusha
-	mov bx, ax
+	push ax
 	shr ax, 8
 	call puthexb
-	mov ax, bx
+	pop ax
 	call puthexb
 	popa
 	popf
