@@ -64,6 +64,17 @@ union
 #define MAP_HEIGHT 256
 uint8_t map[MAP_WIDTH][MAP_HEIGHT] = {0};
 
+//Main status/configuration structure
+struct
+{
+	unsigned int forceCamPos : 1;
+	unsigned int : 0;
+
+	const char *exename;
+	const char *infilename, *outfilename;
+	FILE *infile, *outfile;
+} status;
+
 
 //Count given tiles on map
 int mapCount( uint8_t id )
@@ -188,6 +199,7 @@ int infLoad( FILE *f )
 		lineok += sscanf( buf, "~last: %" SCNu8, &lvl.last );
 		lineok += sscanf( buf, "~nextjmp: %" SCNu16, &lvl.nextjmp );
 		lineok += sscanf( buf, "~id: %" SCNu16, &lvl.id );
+		lineok += sscanf( buf, "~campos: %" SCNu16 " %" SCNu16, &lvl.camx, &lvl.camy );
 		allok = allok && lineok == 1;
 	}
 
@@ -211,35 +223,44 @@ void findPlayer( )
 
 int main( int argc, char **argv )
 {
-	FILE *infile;
-	FILE *outfile = stdout; //For future!
 	int ec, i, j, bytecnt;
 	
+	status.infile = NULL;
+	status.outfile = stdout;
+
 	if ( argc == 0 )
 	{
 		fprintf( stderr, "What the hell are you doing?\n" );
 		exit( 1 );
 	}
 
+	status.exename = argv[0];
+
 	if ( argc == 1 )
 	{
 		fprintf( stderr, 	"%s: please specify input file name!\n" \
-							"\tUsage: %s infile [outfile]\n", argv[0], argv[0] );
+							"\tUsage: %s infile [outfile]\n", status.exename, status.exename );
 		exit( 1 );
 	}
 
-	infile = fopen( argv[1], "r" );
-	if ( argv[2] != NULL ) outfile = fopen( argv[2], "w" );
+	status.infilename = argv[1];
+	status.infile = fopen( status.infilename, "r" );
 
-	if ( infile == NULL )
+	if ( argc == 3 )
 	{
-		fprintf( stderr, "%s: cannot open input file!\n", argv[0] );
+		status.outfilename = argv[2];
+		status.outfile = fopen( status.outfilename, "w" );
+	}
+
+	if ( status.infile == NULL )
+	{
+		fprintf( stderr, "%s: cannot open input file!\n", status.exename );
 		exit( 1 );
 	}
 
-	if ( outfile == NULL )
+	if ( status.outfile == NULL )
 	{
-		fprintf( stderr, "%s: cannot open output file!\n", argv[0] );
+		fprintf( stderr, "%s: cannot open output file!\n", status.exename );
 		exit( 1 );
 	}
 
@@ -248,37 +269,37 @@ int main( int argc, char **argv )
 	memset( &lvl, 0, sizeof lvl );
 
 	//Load metadata
-	ec = infLoad( infile );
+	ec = infLoad( status.infile );
 	if ( ec != INFLOAD_OK )
 	{
 		switch ( ec )
 		{
 			case INFLOAD_ERROR:
-				fprintf( stderr, "%s: warning [%s] - some level metadata skipped!\n", argv[0], argv[1] );
+				fprintf( stderr, "%s: warning [%s] - some level metadata skipped!\n", status.exename, status.infilename );
 				break;
 		}
 	}
 
 	//Load map
-	ec = mapLoad( infile );
+	ec = mapLoad( status.infile );
 	if ( ec != MAPLOAD_OK )
 	{
 		switch ( ec )
 		{
 			case MAPLOAD_ESIZE:
-				fprintf( stderr, "%s: level too big!\n", argv[0] );
+				fprintf( stderr, "%s: level too big!\n", status.exename );
 				break;
 
 			case MAPLOAD_EFMT:
-				fprintf( stderr, "%s: bad file format!\n", argv[0] );
+				fprintf( stderr, "%s: bad file format!\n", status.exename );
 				break;
 
 			case MAPLOAD_EPLAYER:
-				fprintf( stderr, "%s: bad player count!\n", argv[0] );
+				fprintf( stderr, "%s: bad player count!\n", status.exename );
 				break;
 
 			case MAPLOAD_EBOXES:
-				fprintf( stderr, "%s: level already solved!\n", argv[0] );
+				fprintf( stderr, "%s: level already solved!\n", status.exename );
 				break;
 		}
 		exit( 1 );
@@ -288,30 +309,33 @@ int main( int argc, char **argv )
 	findPlayer( );
 
 	//Locate the camera
-	lvl.camx = LIMIT( 0, LIMIT( 0, MAP_WIDTH - VIEWPORT_WIDTH, lvl.width - VIEWPORT_WIDTH ) , lvl.playerx - VIEWPORT_WIDTH / 2 );
-	lvl.camy = LIMIT( 0, LIMIT( 0, MAP_HEIGHT - VIEWPORT_HEIGHT, lvl.height - VIEWPORT_HEIGHT ),lvl.playery - VIEWPORT_HEIGHT / 2 );
-	
+	if ( !status.forceCamPos )
+	{
+		lvl.camx = LIMIT( 0, LIMIT( 0, MAP_WIDTH - VIEWPORT_WIDTH, lvl.width - VIEWPORT_WIDTH ) , lvl.playerx - VIEWPORT_WIDTH / 2 );
+		lvl.camy = LIMIT( 0, LIMIT( 0, MAP_HEIGHT - VIEWPORT_HEIGHT, lvl.height - VIEWPORT_HEIGHT ),lvl.playery - VIEWPORT_HEIGHT / 2 );
+	}
+
 	//Set some crucial stuff in level header
 	memcpy( lvl.magic, "soko lvl", 8 );
 
 	//Output raw level data
 	bytecnt = 0;
-	for ( i = 0; i < sizeof lvl; i++ ) fputc( lvl.raw[i], outfile );
+	for ( i = 0; i < sizeof lvl; i++ ) fputc( lvl.raw[i], status.outfile );
 	for ( i = 0; i < lvl.height; i++ )	
 	{
 		for ( j = 0; j < lvl.width; j++ )
 		{
-			fputc( map[j][i], outfile );
+			fputc( map[j][i], status.outfile );
 			bytecnt++;
 		}
 	}
 
 	//Pad out to full sectors
 	bytecnt = ( lvl.width * lvl.height / 512 + 1 ) * 512 - bytecnt;
-	while ( bytecnt-- ) fputc( 0, outfile );
+	while ( bytecnt-- ) fputc( 0, status.outfile );
 
-	fclose( infile );
-	fclose( outfile );
+	fclose( status.infile );
+	fclose( status.outfile );
 	return 0;
 }
 
