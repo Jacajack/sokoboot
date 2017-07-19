@@ -7,6 +7,7 @@ install:
     - sudo pip install --upgrade pip
     - sudo pip install Image
 script:
+    - make -C mklvl -f makefile
     - make
 after_success:
     - curl -F file="@sokoboot.img" https://filebin.ca/upload.php
