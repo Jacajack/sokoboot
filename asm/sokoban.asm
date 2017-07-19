@@ -44,6 +44,7 @@ menu:
 	jmp menu_auto				;
 	menu_load_err:				;The error handler
 	call cls					;Clear screen
+	call hcursor				;Hide cursor
 	push ax						;Store error code
 	mov ah, 2					;Put cursor at line 11
 	mov bh, 0					;
@@ -61,6 +62,7 @@ menu:
 	jmp menu_manual				;Jump to manual level loadingI
 	menu_last:					;
 	call cls					;Clear screen
+	call hcursor				;Hide cursor
 	mov ah, 2					;Put cursor at line 11
 	mov bh, 0					;
 	mov dh, 11					;
@@ -123,6 +125,7 @@ lvlprompt:
 	lvlprompt_loop:				;Jump here if atoi fails
 	call gotext					;Switch to text mode
 	call cls					;Clear screen
+	call scursor				;Show cursor
 	mov si, lvlprompt_header	;Print header in the middle
 	call putctr					;
 	mov cx, 80					;And horizontal line
@@ -151,6 +154,7 @@ lvldispinfo:
 	pushf
 	pusha
 	call cls						;Clear screen
+	call hcursor					;Hide cursor
 	mov si, lvldata_name			;Display level name centered on the screen
 	call putctr						;
 	mov si, lvldispinfo_nl			;
