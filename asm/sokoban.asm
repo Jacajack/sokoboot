@@ -186,8 +186,16 @@ lvldispinfo:
 	mov si, lvldispinfo_nl			;And additional newlines
 	call puts						;
 	call puts						;
+	mov ah, 2						;Put cursor at line 23
+	mov bh, 0						;
+	mov dh, 23						;
+	mov dl, 0						;
+	int 0x10						;
+	mov al, '-'						;Display horizontal line
+	mov cx, 80						;
+	call repchr						;
 	mov si, lvldispinfo_keys		;Display message about expected keys
-	call puts
+	call putctr						;
 	lvldispinfo_loop:				;Key-awaiting loop
 		call getc					;Get character
 		cmp al, 10					;If it's CR or LF
