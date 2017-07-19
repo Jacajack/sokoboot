@@ -199,7 +199,13 @@ int infLoad( FILE *f )
 		lineok += sscanf( buf, "~last: %" SCNu8, &lvl.last );
 		lineok += sscanf( buf, "~nextjmp: %" SCNu16, &lvl.nextjmp );
 		lineok += sscanf( buf, "~id: %" SCNu16, &lvl.id );
-		lineok += sscanf( buf, "~campos: %" SCNu16 " %" SCNu16, &lvl.camx, &lvl.camy );
+		
+		if ( sscanf( buf, "~campos: %" SCNu16 ", %" SCNu16, &lvl.camx, &lvl.camy )  == 2 )
+		{
+			status.forceCamPos = 1;
+			lineok += 1;
+		}
+
 		allok = allok && lineok == 1;
 	}
 
