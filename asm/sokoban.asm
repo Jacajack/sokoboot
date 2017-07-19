@@ -855,7 +855,7 @@ lvlinfoload:
 	mov si, lvlinfoload_magic							;Validate magic string
 	mov di, lvldata_magic								;
 	mov cx, 8											;We will be comparing 8 bytes
-	cld
+	cld													;
 	rep cmpsb											;
 	mov byte [lvlinfoload_error], lvlload_error_magic	;Get error number ready
 	jnz lvlinfoload_end									;Abort if doesn't match
@@ -864,6 +864,7 @@ lvlinfoload:
 	mul cx												;Multiply width and height
 	mov byte [lvlinfoload_error], lvlload_error_size	;Get error ready
 	jo lvlinfoload_end									;Error on overflow (level can be up to 65536 bytes long)
+	test ax, ax											;(ZF cannot be used)
 	jz lvlinfoload_end									;Also, jump when there's no data
 	mov byte [lvlinfoload_error], lvlload_error_none	;Exit without error
 	lvlinfoload_end:
@@ -889,6 +890,7 @@ lvldataload:
 	mul cx												;Multiply width and height
 	mov byte [lvldataload_error], lvlload_error_size	;Get error ready
 	jo lvldataload_end									;Error on overflow (level can be up to 65536 bytes long)
+	test ax, ax											;(ZF didn't work on my COMPAQ)
 	jz lvldataload_end									;Also, jump when there's no data
 	dec ax												;Decrement size in bytes
 	shr ax, 9											;Divide level size (in bytes) by 512
