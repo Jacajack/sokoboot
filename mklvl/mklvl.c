@@ -76,6 +76,7 @@ struct
 	unsigned int forceCamx : 1;
 	unsigned int forceCamy : 1;
 	unsigned int forceNext : 1;
+	unsigned int forceId : 1;
 	unsigned int : 0;
 
 	const char *exename;
@@ -229,7 +230,7 @@ int infload( struct lvl *level, const char *lvlstr )
 		tagok += ( status.forceNext |= sscanf( buf, "~next: %" SCNu16, &level->next ) );
 		tagok += ( status.forceNext |= sscanf( buf, "~last: %" SCNu8, &level->last ) );
 		tagok += ( status.forceNext |= sscanf( buf, "~nextjmp: %" SCNu16, &level->nextjmp ) );
-		tagok += sscanf( buf, "~id: %" SCNu16, &level->id );
+		tagok += ( status.forceId |= sscanf( buf, "~id: %" SCNu16, &level->id ) );
 		tagok += sscanf( buf, "~maxtime: %" SCNu16, &level->maxtime );
 		tagok += sscanf( buf, "~maxstep: %" SCNu16, &level->maxstep );
 		tagok += ( status.forceCamx |= sscanf( buf, "~camx: %" SCNu16, &level->camx ) );
@@ -416,6 +417,13 @@ int main( int argc, char **argv )
 		{
 			fprintf( stderr, "%s: [%d @ %s] marked as last...\n", status.exename, i, status.infilename );
 			level->last = 1;
+		}
+
+		//Automatically assign ID
+		if ( !status.forceId ) 
+		{
+			fprintf( stderr, "%s: [%d @ %s] id set...\n", status.exename, i, status.infilename );
+			level->id = i;
 		}
 
 		//Output raw level data
