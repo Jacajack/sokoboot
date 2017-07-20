@@ -54,6 +54,8 @@ union
 		uint8_t last;
 		uint16_t nextjmp; 
 		uint16_t boxcnt;
+		uint16_t maxtime;
+		uint16_t maxstep;
 	} __attribute__( ( __packed__ ) );
 
 	uint8_t raw[LVL_INF_SIZE];
@@ -200,6 +202,8 @@ int infLoad( FILE *f )
 		lineok += sscanf( buf, "~last: %" SCNu8, &lvl.last );
 		lineok += sscanf( buf, "~nextjmp: %" SCNu16, &lvl.nextjmp );
 		lineok += sscanf( buf, "~id: %" SCNu16, &lvl.id );
+		lineok += sscanf( buf, "~maxtime: %" SCNu16, &lvl.maxtime );
+		lineok += sscanf( buf, "~maxstep: %" SCNu16, &lvl.maxstep );
 		
 		if ( sscanf( buf, "~campos: %" SCNu16 ", %" SCNu16, &lvl.camx, &lvl.camy )  == 2 )
 		{
