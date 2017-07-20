@@ -10,6 +10,7 @@
 %include "stdio/gets.asm"
 %include "stdio/gotext.asm"
 %include "stdio/kbhit.asm"
+%include "stdio/kbclbuf.asm"
 %include "stdio/putc.asm"
 %include "stdio/putctr.asm"
 %include "stdio/putdec.asm"
