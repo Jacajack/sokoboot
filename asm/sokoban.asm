@@ -203,11 +203,22 @@ lvldispinfo:
 	mov cx, 80						;
 	mov al, '-'						;Display horizontal bar
 	call repchr						;
+	mov si, lvldispinfo_nl			;Additional nl
+	call puts						;
 	lvldispinfo_disp_id:			;Display id
 	mov si, lvldispinfo_id			;
 	call puts						;
 	mov ax, [lvldata_id]			;
 	call putdec						;
+	mov si, lvldispinfo_nl			;
+	call puts						;
+	lvldispinfo_disp_author:		;Display author
+	cmp byte [lvldata_author], 0	;
+	je lvldispinfo_disp_size		;
+	mov si, lvldispinfo_author		;
+	call puts						;
+	mov si, lvldata_author			;
+	call puts						;
 	mov si, lvldispinfo_nl			;
 	call puts						;
 	lvldispinfo_disp_size:			;Display level dimensions
@@ -302,6 +313,7 @@ lvldispinfo:
 	lvldispinfo_boxcnt: db "  Box count: ", 0
 	lvldispinfo_maxtime: db "  Time limit: ", 0
 	lvldispinfo_maxstep: db "  Allowed steps: ", 0
+	lvldispinfo_author: db "  Author: ", 0
 	lvldispinfo_keys: db "Press enter to play or ESC to quit", 0
 
 ;Print information about current game status at the bottom of the screen
@@ -1190,6 +1202,7 @@ lvldata:
 	lvldata_boxcnt: dw 0
 	lvldata_maxtime: dw 0
 	lvldata_maxstep: dw 0
+	lvldata_author: times 80 db 0
 	lvldata_reserved: times 1024 - ( $ - lvldata ) db 0
 	lvldata_map: times 65536 - ( $ - lvldata ) db 0
 

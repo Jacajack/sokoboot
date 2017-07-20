@@ -56,6 +56,7 @@ union
 		uint16_t boxcnt;
 		uint16_t maxtime;
 		uint16_t maxstep;
+		char author[80];
 	} __attribute__( ( __packed__ ) );
 
 	uint8_t raw[LVL_INF_SIZE];
@@ -198,6 +199,7 @@ int infLoad( FILE *f )
 		lineok = 0;
 		lineok += sscanf( buf, "~name: \"%79[^\"\n\r]\"", lvl.name );
 		lineok += sscanf( buf, "~desc: \"%319[^\"\n\n]\"", lvl.desc );
+		lineok += sscanf( buf, "~author: \"%79[^\"\n\n]\"", lvl.author );
 		lineok += sscanf( buf, "~next: %" SCNu16, &lvl.next );
 		lineok += sscanf( buf, "~last: %" SCNu8, &lvl.last );
 		lineok += sscanf( buf, "~nextjmp: %" SCNu16, &lvl.nextjmp );
