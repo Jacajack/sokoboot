@@ -203,13 +203,15 @@ lvldispinfo:
 	mov cx, 80						;
 	mov al, '-'						;Display horizontal bar
 	call repchr						;
-	mov si, lvldispinfo_id			;Display level id
+	lvldispinfo_disp_id:			;Display id
+	mov si, lvldispinfo_id			;
 	call puts						;
 	mov ax, [lvldata_id]			;
 	call putdec						;
 	mov si, lvldispinfo_nl			;
 	call puts						;
-	mov si, lvldispinfo_size		;Dispalay level dimensions
+	lvldispinfo_disp_size:			;Display level dimensions
+	mov si, lvldispinfo_size		;
 	call puts						;
 	mov ax, [lvldata_width]			;
 	call putdec 					;
@@ -219,23 +221,46 @@ lvldispinfo:
 	call putdec						;
 	mov si, lvldispinfo_nl			;
 	call puts						;
-	mov si, lvldispinfo_location	;Display level location
+	lvldispinfo_disp_location:		;Display location on disk
+	mov si, lvldispinfo_location	;
 	call puts						;
 	mov ax, [lvlinfoload_lba]		;
 	call putdec						;
 	mov si, lvldispinfo_nl			;
 	call puts						;
-	mov si, lvldispinfo_boxcnt		;Display box count
+	lvldispinfo_disp_boxcnt:		;Diaplay box count
+	cmp word [lvldata_boxcnt], 0	;
+	je lvldispinfo_disp_maxtime		;
+	mov si, lvldispinfo_boxcnt		;
 	call puts						;
 	mov ax, [lvldata_boxcnt]		;
 	call putdec						;
 	mov si, lvldispinfo_nl			;
 	call puts						;
-	mov si, lvldispinfo_desc		;Display description
+	lvldispinfo_disp_maxtime:		;Display max time
+	cmp word [lvldata_maxtime], 0	;
+	je lvldispinfo_disp_maxstep		;
+	mov si, lvldispinfo_maxtime		;
+	call puts						;
+	mov ax, [lvldata_maxtime]		;
+	call putdec						;
+	mov si, lvldispinfo_nl			;
+	call puts						;
+	lvldispinfo_disp_maxstep:		;Display step limit
+	cmp word [lvldata_maxstep], 0	;
+	je lvldispinfo_disp_desc		;
+	mov si, lvldispinfo_maxstep		;
+	call puts						;
+	mov ax, [lvldata_maxstep]		;
+	call putdec						;
+	mov si, lvldispinfo_nl			;
+	call puts						;
+	lvldispinfo_disp_desc:			;Display description
+	mov si, lvldispinfo_desc		;
 	call puts						;
 	mov si, lvldata_desc			;
 	call puts						;
-	mov si, lvldispinfo_nl			;And additional newlines
+	mov si, lvldispinfo_nl			;Additional nl
 	call puts						;
 	call puts						;
 	mov ah, 2						;Put cursor at line 23
@@ -269,12 +294,14 @@ lvldispinfo:
 	ret
 	lvldispinfo_ec: db 0
 	lvldispinfo_nl: db 13, 10, 0
-	lvldispinfo_id: db "Level: ", 0
-	lvldispinfo_desc: db "Description: ", 0
-	lvldispinfo_size: db "Dimensions: ", 0
+	lvldispinfo_id: db "  Level: ", 0
+	lvldispinfo_desc: db "  Description: ", 0
+	lvldispinfo_size: db "  Dimensions: ", 0
 	lvldispinfo_size_x: db " x ", 0
-	lvldispinfo_location: db "Location at disk: ", 0
-	lvldispinfo_boxcnt: db "Box count: ", 0
+	lvldispinfo_location: db "  Location at disk: ", 0
+	lvldispinfo_boxcnt: db "  Box count: ", 0
+	lvldispinfo_maxtime: db "  Time limit: ", 0
+	lvldispinfo_maxstep: db "  Allowed steps: ", 0
 	lvldispinfo_keys: db "Press enter to play or ESC to quit", 0
 
 ;Print information about current game status at the bottom of the screen
