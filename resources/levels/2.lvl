@@ -2,17 +2,15 @@
 ~name: "The second trial"
 ~desc: "We shall also check if we can get there!"
 ~campos: 0, 0
-~last: 1
+~nextjmp: 3
     wwwww
     w   w
     w&  w
   www  &ww
   w  & & w
 www w ww w   wwwwwww
-w   w ww wwwww   ..w
+w   w ww w www   ..w
 w &  &           ..w
 wwwww www w@ww   ..w
     w     wwwwwwwwww
     wwwwwww
-
-

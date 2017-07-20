@@ -73,7 +73,7 @@ menu:
 	menu_game_mesg: db "GAME  OVER", 13, 10, 0
 	menu_game_list:
 		db "THERE'S NO PARTICULAR REASON", 0
-		db "YOU ABANDONNED THE GAME", 0
+		db "YOU ABANDONED THE GAME", 0
 		db "TIME IS UP", 0
 		db "YOU'VE REACHED THE STEP LIMIT", 0
 
