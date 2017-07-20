@@ -139,14 +139,18 @@ int mapLoad( FILE *f )
 				break;
 
 			case ' ':
+			case '_':
+			case '-':
 				*t = TILE_AIR;
 				break;
 
+			case 'p':
 			case '@':
 				*t = TILE_PLAYER;
 				break;
 
 			case 'w':
+			case '#':
 				*t = TILE_WALL;
 				break;
 
@@ -154,15 +158,19 @@ int mapLoad( FILE *f )
 				*t = TILE_SOCKET;
 				break;
 
+			case 'b':
 			case '&':
+			case '$':
 				*t = TILE_BOX;
 				break;
 
+			case '+':
 			case 'P':
 				*t = TILE_SOCKETPLAYER;
 				break;
 
 			case 'B':
+			case '*':
 				*t = TILE_SOCKETBOX;
 				break;
 
