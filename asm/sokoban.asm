@@ -39,40 +39,24 @@ menu:
 	jne menu_load_err			;
 	call game					;
 	call fadeout				;Fade screen out
-	cmp al, 0					;On win, automatically load next level
-	je menu_manual				;Else, prompt user for next level location
-	jmp menu_auto				;
+	cmp al, game_exit_win		;On win, automatically load next level
+	je menu_auto				;
+	xor ah, ah					;Else, display proper message
+	mov si, menu_game_mesg		;
+	mov di, menu_game_list		;
+	call screenmesg				;
+	jmp menu_manual				;And prompt user to pick level
 	menu_load_err:				;The error handler
-	call cls					;Clear screen
-	call hcursor				;Hide cursor
-	push ax						;Store error code
-	mov ah, 2					;Put cursor at line 11
-	mov bh, 0					;
-	mov dh, 11					;
-	mov dl, 0					;
-	int 0x10					;
-	pop ax						;Restore error code
-	xor ah, ah					;Clear upper part
 	mov si, menu_load_err_mesg	;Print error header in the middle
-	call putctr					;	
-	mov si, menu_load_err_list	;Get proper error message
-	call strfetch				;
-	call putctr					;And also print it in the middle
-	call getc					;Wait for user reaction
-	jmp menu_manual				;Jump to manual level loadingI
+	mov di, menu_load_err_list	;Get proper error message
+	xor ah, ah					;Clear upper AX part
+	call screenmesg				;Display the message
+	jmp menu_manual				;Jump to manual level loading
 	menu_last:					;
-	call cls					;Clear screen
-	call hcursor				;Hide cursor
-	mov ah, 2					;Put cursor at line 11
-	mov bh, 0					;
-	mov dh, 11					;
-	mov dl, 0					;
-	int 0x10					;
-	mov si, menu_last_mesg		;Print a message and congratunlations
-	call putctr					;
-	mov si, menu_congrat_mesg	;
-	call putctr					;
-	call getc					;Wait for keypress
+	mov si, menu_last_mesg		;Load the message
+	mov di, menu_congrat_mesg	;
+	xor ax, ax					;
+	call screenmesg				;Display the message
 	jmp menu_manual				;Go back to level prompt
 	popa
 	popf
@@ -86,7 +70,64 @@ menu:
 		db "LEVEL TOO BIG", 0
 	menu_last_mesg: db "THIS WAS THE LAST LEVEL", 13, 10, 0
 	menu_congrat_mesg: db "CONGRATULATIONS!", 13, 10, 0
+	menu_game_mesg: db "GAME  OVER", 13, 10, 0
+	menu_game_list:
+		db "THERE'S NO PARTICULAR REASON", 0
+		db "YOU ABANDONNED THE GAME", 0
+		db "TIME IS UP", 0
+		db "YOU'VE REACHED THE STEP LIMIT", 0
 
+;Display message that takes all over the screen
+;si - header
+;di - message
+;ax - message id
+screenmesg:
+	pusha
+	pushf
+	push ax						;Store message ID
+	call cls					;Clear screen
+	call hcursor				;Hide cursor
+	call kbclbuf				;Clear keyboard buffer
+	mov ah, 2					;Put cursor at line 11
+	mov bh, 0					;
+	mov dh, 11					;
+	mov dl, 0					;
+	int 0x10					;
+	call putctr					;Print header
+	mov ah, 2					;Put cursor at line 12
+	mov bh, 0					;
+	mov dh, 12					;
+	mov dl, 0					;
+	int 0x10					;
+	mov si, di					;Load the message
+	pop ax						;Load message ID
+	call strfetch				;Fetch the message
+	call putctr					;Print the message
+	mov ah, 2					;Put cursor at line 24
+	mov bh, 0					;
+	mov dh, 23					;
+	mov dl, 0					;
+	int 0x10					;
+	mov al, '-'					;Display horizontal line
+	mov cx, 80					;
+	call repchr					;
+	mov si, screenmesg_mesg		;Display message telling user what to do
+	call putctr					;
+	screenmesg_wait:			;Wait for user to press enter
+		call getc				;Get character
+		cmp al, 13				;
+		je screenmesg_end		;
+		cmp al, 10				;
+		je screenmesg_end		;
+		cmp al, 0x1b			;
+		je screenmesg_end		;
+		jmp screenmesg_wait		;Loop if not enter
+	screenmesg_end:				;
+	popf
+	popa
+	ret
+	screenmesg_mesg: db "Press enter or ESC to dismiss", 0
+	
 ;Load next level according to information included in current level's metadata
 ;return ax - LBA of next level
 ;return cf - if set, next level cannot be loaded
@@ -240,58 +281,128 @@ lvldispinfo:
 gamestatus:
 	pushf
 	pusha
-	mov ah, 2						;Put cursor at line 255
+	mov ah, 2						;Put cursor at line 24, col 1 
 	mov bh, 0						;
 	mov dh, 24						;
-	mov dl, 0						;
+	mov dl, 1						;
 	int 0x10						;
 	mov bl, 255						;White text
-	mov si, gamestatus_box_mesg	;Print the rest of the message
+	mov si, gamestatus_box_mesg		;Print the rest of the message
 	call puts						;
 	mov ax, [game_boxleft]			;Print box count
+	stc								;Print 0s too
 	call putdec						;
+	cmp word [lvldata_maxtime], 0	;Check if leve has time limit
+	je gamestatus_skiptime			;
+	mov ah, 2						;Put cursor at line 24, col 18
+	mov bh, 0						;
+	mov dh, 24						;
+	mov dl, 18						;
+	int 0x10						;
+	mov bl, 255						;White text
+	mov si, gamestatus_time_mesg	;Print the rest of the message
+	call puts						;
+	mov ax, [game_timeleft]			;Print box count
+	stc								;Print 0s too
+	call putdec						;
+	gamestatus_skiptime:			;
+	cmp word [lvldata_maxstep], 0	;Check if level has limited step count
+	je gamestatus_skipstep			;If not, do not display remaining steps
+	mov ah, 2						;Put cursor at line 24, col 33
+	mov bh, 0						;
+	mov dh, 24						;
+	mov dl, 33						;
+	int 0x10						;
+	mov bl, 255						;White text
+	mov si, gamestatus_step_mesg	;Print the rest of the message
+	call puts						;
+	mov ax, [game_stepleft]			;Print box count
+	stc								;Print 0s too
+	call putdec						;
+	gamestatus_skipstep:
 	popa
 	popf
 	ret
-	gamestatus_box_mesg: db "Boxes left: ", 0
-	
+	gamestatus_box_mesg: db "B", 0
+	gamestatus_time_mesg: db "T", 0
+	gamestatus_step_mesg: db "S", 0	
 
 ;This is the routine that should be called in order to start the game itself
 ;return al - if 0 game was exited
 game:
 	pushf
 	pusha
-	mov byte [game_quitrq], 0		;Reset the quit request flag
-	mov al, 0x13					;Enter 13h graphics mode
-	mov ah, 0x0						;
-	int 0x10						;
-	call palsetup					;Setup color palette
-	call findplayer					;Find player on map
-	call drawmap					;Draw whole map for the start
-	game_loop:						;The game loop
-		call mapcnt					;Count tiles on map
-		mov ax, [mapcnt_box]		;Get box count
-		mov [game_boxleft], ax		;
-		call gamestatus				;
-		cmp word [mapcnt_box], 0	;If it's 0, the game is finished
-		je game_win					;
-		cmp byte [game_quitrq], 0	;Check if there's a quit request
-		jne game_quit				;If so, quit
-		call getc					;Get keypress
-		call kbaction				;Process keyboard input
-		jmp game_loop				;Loop
-	game_win:						;
-	popa							;
-	mov al, 1						;AL = 1 - game won
-	popf							;
-	ret								;
-	game_quit:						;
-	popa							;
-	mov al, 0						;AL = 0 - game quit
-	popf							;
-	ret								;
+	mov byte [game_quitrq], 0					;Reset the quit request flag
+	mov word [game_ticks], 0					;Reset time counter
+	mov ax, [lvldata_maxtime]					;Load time and step count from level metadata
+	mov [game_timeleft], ax						;
+	mov ax, [lvldata_maxstep]					;
+	mov [game_stepleft], ax						;
+	mov al, 0x13								;Enter 13h graphics mode
+	mov ah, 0x0									;
+	int 0x10									;
+	call palsetup								;Setup color palette
+	call findplayer								;Find player on map
+	call drawmap								;Draw whole map for the start
+	game_loop:									;The game loop
+		call mapcnt								;Count tiles on map
+		mov ax, [mapcnt_box]					;Get box count
+		mov [game_boxleft], ax					;
+		call gamestatus							;Show game status
+		mov byte [game_exitc], game_exit_win	;Get proper exit code
+		cmp word [mapcnt_box], 0				;If it's 0, the game is finished
+		je game_end								;
+		mov byte [game_exitc], game_exit_user	;Get proper exit code
+		cmp byte [game_quitrq], 0				;Check if there's a quit request
+		jne game_end							;If so, quit		
+		game_cktime:							;Check time
+		cmp word [lvldata_maxtime], 0			;
+		je game_ckstep							;
+		mov byte [game_exitc], game_exit_time	;
+		cmp word [game_timeleft], 0				;
+		je game_end								;
+		game_ckstep:							;Check steps
+		cmp word [lvldata_maxstep], 0			;
+		je game_cont							;
+		mov byte [game_exitc], game_exit_step	;
+		cmp word [game_stepleft], 0				;
+		je game_end								;
+		game_cont:								;
+		call kbhit								;Check keyboard buffer
+		test al, al								;
+		jnz game_key							;If empty, loop again
+		mov ax, 0								;Get system time
+		int 0x1a								;
+		mov bx, dx								;
+		game_wait:								;Wait till it changes
+			int 0x1a							;
+			cmp bx, dx							;
+			je game_wait						;
+		inc word [game_ticks]					;Update tick timer
+		cmp word [game_ticks], 18				;If it's not equal 18 (~1s has passed) 
+		jne game_loop							;Then continue game loop
+		dec word [game_timeleft]				;Else, decrement left time counter
+		mov word [game_ticks], 0				;And reset tick counter
+		jmp game_loop							;And go back to game loop
+		game_key:								;
+		call getc								;Get keypress
+		call kbaction							;Process keyboard input
+		jmp game_loop							;Loop
+	game_end:									;
+	popa										;
+	mov al, [game_exitc]						;Load proper exit code
+	popf										;
+	ret											;
 	game_quitrq: db 0
 	game_boxleft: dw 0
+	game_timeleft: dw 0
+	game_stepleft: dw 0
+	game_exitc: db 0
+	game_ticks: dw 0
+	game_exit_win equ 0
+	game_exit_user equ 1
+	game_exit_time equ 2
+	game_exit_step equ 3
 
 ;Counts how many times does given tile appear on map
 ;dl - tile to count
@@ -1050,6 +1161,8 @@ lvldata:
 	lvldata_last: db 0
 	lvldata_nextjmp: dw 0
 	lvldata_boxcnt: dw 0
+	lvldata_maxtime: dw 0
+	lvldata_maxstep: dw 0
 	lvldata_reserved: times 1024 - ( $ - lvldata ) db 0
 	lvldata_map: times 65536 - ( $ - lvldata ) db 0
 
