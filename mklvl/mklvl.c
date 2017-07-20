@@ -62,6 +62,7 @@ struct lvl
 			uint16_t maxtime;
 			uint16_t maxstep;
 			char author[80];
+			uint8_t camlock;
 		} __attribute__( ( __packed__ ) );
 
 		uint8_t raw[LVL_INF_SIZE];
@@ -235,7 +236,7 @@ int infload( struct lvl *level, const char *lvlstr )
 		tagok += sscanf( buf, "~maxstep: %" SCNu16, &level->maxstep );
 		tagok += ( status.forceCamx |= sscanf( buf, "~camx: %" SCNu16, &level->camx ) );
 		tagok += ( status.forceCamy |= sscanf( buf, "~camy: %" SCNu16, &level->camy ) );	
-
+		tagok += ( sscanf( buf, "~camlock: %" SCNu8, &level->camlock ) );
 		allok = allok && tagok;
 	}
 

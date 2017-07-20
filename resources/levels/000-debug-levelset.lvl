@@ -28,6 +28,7 @@ wwwwwwww
 ~desc: "We shall also check if we can get there!"
 ~camx: 0
 ~camy: 0
+~camlock: 1
     wwwww
     w   w
     w&  w

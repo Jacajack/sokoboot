@@ -972,46 +972,48 @@ movtile:
 movcam:
 	pushf
 	pusha
-	mov bx, dx					;Move delta into bx
-	mov byte [movcam_moved], 0	;Assume camera didn't move
-	mov cx, [lvldata_camx]		;Load current camera position
-	mov dx, [lvldata_camy]		;
-	movcam_xck:					;Check x position
-	mov ax, [lvldata_width]		;Load level width into ax
-	sub ax, viewport_width		;Substract viewport width
-	jo movcam_yck				;If this causes overflow level is smaller than viewport - no need to move
-	push bx						;Store delta
-	mov bh, 0					;Clear upper part
-	add cx, bx					;Add delta to bx
-	pop bx						;Restore delta
-	cmp bl, 1					;If no movement was requested - abort
-	je movcam_yck				;
-	sub cx, 1					;Substract 1 from x position
-	js movcam_yck				;If result is negative - abort
-	cmp cx, ax					;Now compare reult with max camera x allowed
-	ja movcam_yck				;If exceeds - abort
-	mov [lvldata_camx], cx		;If've got here - everything's fine
-	mov byte [movcam_moved], 1	;Set 'moved' flag
-	movcam_yck:					;Check y position
-	mov ax, [lvldata_height]	;Load level height
-	sub ax, viewport_height		;Substract viewport height
-	jo movcam_end				;If this causes overflow level is smaller than viewport - no need to move
-	push bx						;Store delta
-	xchg bl, bh					;Exchange deltas
-	mov bh, 0					;Clear upper part
-	add dx, bx					;Add delta to cam position
-	pop bx						;Restore delta
-	cmp bh, 1					;If no movement was requested - abort
-	je movcam_end				;
-	sub dx, 1					;Substract 1
-	js movcam_end				;If result is negative - abort
-	cmp dx, ax					;Now compare with max camera y allowed
-	ja movcam_end				;If exceeds - abort
-	mov [lvldata_camy], dx		;If've got here - everything's fine
-	mov byte [movcam_moved], 1	;Set 'moved' flag
-	movcam_end:
-	popa						;
-	mov al, [movcam_moved]		;Return value
+	mov bx, dx						;Move delta into bx
+	mov byte [movcam_moved], 0		;Assume camera didn't move
+	cmp byte [lvldata_camlock], 0	;Abort if camera lock is enabled
+	jne movcam_end					;
+	mov cx, [lvldata_camx]			;Load current camera position
+	mov dx, [lvldata_camy]			;
+	movcam_xck:						;Check x position
+	mov ax, [lvldata_width]			;Load level width into ax
+	sub ax, viewport_width			;Substract viewport width
+	jo movcam_yck					;If this causes overflow level is smaller than viewport - no need to move
+	push bx							;Store delta
+	mov bh, 0						;Clear upper part
+	add cx, bx						;Add delta to bx
+	pop bx							;Restore delta
+	cmp bl, 1						;If no movement was requested - abort
+	je movcam_yck					;
+	sub cx, 1						;Substract 1 from x position
+	js movcam_yck					;If result is negative - abort
+	cmp cx, ax						;Now compare reult with max camera x allowed
+	ja movcam_yck					;If exceeds - abort
+	mov [lvldata_camx], cx			;If've got here - everything's fine
+	mov byte [movcam_moved], 1		;Set 'moved' flag
+	movcam_yck:						;Check y position
+	mov ax, [lvldata_height]		;Load level height
+	sub ax, viewport_height			;Substract viewport height
+	jo movcam_end					;If this causes overflow level is smaller than viewport - no need to move
+	push bx							;Store delta
+	xchg bl, bh						;Exchange deltas
+	mov bh, 0						;Clear upper part
+	add dx, bx						;Add delta to cam position
+	pop bx							;Restore delta
+	cmp bh, 1						;If no movement was requested - abort
+	je movcam_end					;
+	sub dx, 1						;Substract 1
+	js movcam_end					;If result is negative - abort
+	cmp dx, ax						;Now compare with max camera y allowed
+	ja movcam_end					;If exceeds - abort
+	mov [lvldata_camy], dx			;If've got here - everything's fine
+	mov byte [movcam_moved], 1		;Set 'moved' flag
+	movcam_end:						;
+	popa							;
+	mov al, [movcam_moved]			;Return value
 	popf
 	ret
 	movcam_moved: db 0
@@ -1203,6 +1205,7 @@ lvldata:
 	lvldata_maxtime: dw 0
 	lvldata_maxstep: dw 0
 	lvldata_author: times 80 db 0
+	lvldata_camlock: db 0
 	lvldata_reserved: times 1024 - ( $ - lvldata ) db 0
 	lvldata_map: times 65536 - ( $ - lvldata ) db 0
 
