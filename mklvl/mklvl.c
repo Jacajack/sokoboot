@@ -23,6 +23,10 @@
 #define MAPLOAD_EPLAYER 4
 #define MAPLOAD_EBOXES 	5
 
+#define GETLVL_OK 0
+#define GETLVL_EOF 1
+#define GETLVL_ERROR 2
+
 //Metadata load errors
 #define INFLOAD_OK 		0
 #define INFLOAD_ERROR 	1
@@ -74,6 +78,9 @@ struct
 	unsigned int forceCamPos : 1;
 	unsigned int : 0;
 
+	char *lvlstr;
+	size_t lvllen;
+
 	const char *exename;
 	const char *infilename, *outfilename;
 	FILE *infile, *outfile;
@@ -93,31 +100,33 @@ int mapCount( uint8_t id )
 }
 
 //Load map data from file
-int mapLoad( FILE *f )
+int mapLoad( )
 {
 	int c;
+	int i = 0;
 	uint16_t x = 0, y = 0;
 	uint16_t maxx = 0;
 	uint8_t *t;
-
-	//Seek to the begining
-	rewind( f );
+	int ign = 0;
 
 	//Read by character
-	while ( ( c = getc( f ) ) != EOF )
+	while ( ( c = status.lvlstr[i++] ) != 0 )
 	{
+
+		//Ignore lines starting with '~'
+		if ( ign && (char) c == '\n' )
+		{
+			ign = 0;
+			continue;
+		}
+		if ( x == 0 && (char) c == '~' )
+			ign = 1;
+		if ( ign ) continue;
+
+
 		//If current x is greater than map width, abort
 		if ( x >= MAP_WIDTH || y >= MAP_HEIGHT )
 			return MAPLOAD_ESIZE;
-
-		//Ignore lines starting with '~'
-		if ( x == 0 && (char) c == '~' )
-		{
-			while ( c != '\n' && c != EOF )
-				c = getc( f );
-			c = EOF;
-			continue;
-		}
 
 		if ( x > maxx ) maxx = x;
 
@@ -192,22 +201,21 @@ int mapLoad( FILE *f )
 }
 
 //Loads metadata form file
-int infLoad( FILE *f )
+int infLoad( )
 {
-	char buf[4096];
+	char *buf = NULL;
 	char lineok = 0;
 	char allok = 1;
+	char *str = strdup( status.lvlstr );
+	if ( str == NULL ) return INFLOAD_ERROR;
 
-	//Rewind the file
-	rewind( f );
-
-	while ( fgets( buf, sizeof buf, f ) != NULL )
+	for ( buf = strtok( str, "\n" ); buf != NULL; buf = strtok( NULL, "\n" ) )
 	{
 		if ( buf[0] != '~' ) continue; //Skip 'commented out' lines
 		lineok = 0;
 		lineok += sscanf( buf, "~name: \"%79[^\"\n\r]\"", lvl.name );
-		lineok += sscanf( buf, "~desc: \"%319[^\"\n\n]\"", lvl.desc );
-		lineok += sscanf( buf, "~author: \"%79[^\"\n\n]\"", lvl.author );
+		lineok += sscanf( buf, "~desc: \"%319[^\"\n\r]\"", lvl.desc );
+		lineok += sscanf( buf, "~author: \"%79[^\"\n\r]\"", lvl.author );
 		lineok += sscanf( buf, "~next: %" SCNu16, &lvl.next );
 		lineok += sscanf( buf, "~last: %" SCNu8, &lvl.last );
 		lineok += sscanf( buf, "~nextjmp: %" SCNu16, &lvl.nextjmp );
@@ -224,6 +232,7 @@ int infLoad( FILE *f )
 		allok = allok && lineok == 1;
 	}
 
+	free( str );
 	if ( !allok ) return INFLOAD_ERROR;
 	else return INFLOAD_OK;
 }
@@ -240,6 +249,44 @@ void findPlayer( )
 				lvl.playery = i;
 				return;
 			}
+}
+
+int getlvl( FILE *f )
+{
+	long start, end;
+	int c;
+	int cnt = 0;
+	int delim = 0;
+	
+	if ( f == NULL ) return GETLVL_ERROR;
+	start = ftell( f );
+	
+	status.lvllen = 0;
+	if ( status.lvlstr != NULL ) free( status.lvlstr );
+	
+	while ( ( c = fgetc( f ) ) != EOF )
+	{
+		if ( (char) c == '~' ) cnt++;
+		else cnt = 0;
+		if ( cnt == 3 )
+		{
+			delim = 1;
+			break;
+		}
+	}
+
+	end = ftell( f );		
+	status.lvlstr = malloc( end - start + 1 );
+	if ( status.lvlstr == NULL ) return GETLVL_ERROR;
+	status.lvllen = end - start;
+	status.lvlstr[end - start] = 0;
+
+	fseek( f, start, SEEK_SET );
+	cnt = 0;
+	while ( ( c = fgetc( f ) ) != EOF && ftell( f ) < end )
+		status.lvlstr[cnt++] = c;
+
+	return delim ? GETLVL_OK : GETLVL_EOF;
 }
 
 int main( int argc, char **argv )
@@ -289,8 +336,10 @@ int main( int argc, char **argv )
 	//Make sure that the level structure is empty
 	memset( &lvl, 0, sizeof lvl );
 
+	getlvl( status.infile );
+
 	//Load metadata
-	ec = infLoad( status.infile );
+	ec = infLoad( );
 	if ( ec != INFLOAD_OK )
 	{
 		switch ( ec )
@@ -300,9 +349,9 @@ int main( int argc, char **argv )
 				break;
 		}
 	}
-
+	
 	//Load map
-	ec = mapLoad( status.infile );
+	ec = mapLoad( );
 	if ( ec != MAPLOAD_OK )
 	{
 		switch ( ec )
@@ -361,5 +410,7 @@ int main( int argc, char **argv )
 	fclose( status.infile );
 	fclose( status.outfile );
 	return 0;
+
+	
 }
 
