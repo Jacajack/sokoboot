@@ -5,7 +5,8 @@ kbaction_player_mover:
 	mov dl, 2
 	mov dh, 1
 	call movplayer
-	call drawstack_draw
+	xor bh, bh
+	sub [game_stepleft], bx
 	popa
 	popf
 	ret
@@ -17,7 +18,8 @@ kbaction_player_moveu:
 	mov dl, 1
 	mov dh, 0
 	call movplayer
-	call drawstack_draw
+	xor bh, bh
+	sub [game_stepleft], bx
 	popa
 	popf
 	ret
@@ -29,7 +31,8 @@ kbaction_player_moved:
 	mov dl, 1
 	mov dh, 2
 	call movplayer
-	call drawstack_draw
+	xor bh, bh
+	sub [game_stepleft], bx
 	popa
 	popf
 	ret
@@ -41,7 +44,8 @@ kbaction_player_movel:
 	mov dl, 0
 	mov dh, 1
 	call movplayer
-	call drawstack_draw
+	xor bh, bh
+	sub [game_stepleft], bx
 	popa
 	popf
 	ret

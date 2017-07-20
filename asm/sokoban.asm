@@ -641,6 +641,7 @@ findplayer:
 
 ;dl - x delta (0-1-2)
 ;dh - y delta (0-1-2)
+;return bl - 1 on success
 movplayer:
 	pushf
 	pusha
@@ -664,6 +665,7 @@ movplayer:
 	mov ax, [lvldata_playerx]		;Get player position
 	mov cx, [lvldata_playery]		;
 	call movtile					;And finally, move the player
+	mov [movplayer_success], bl		;Success flag depending on movtile exit code
 	mov byte [movplayer_cam_dx], 01	;Don't move camera by default
 	mov byte [movplayer_cam_dy], 01	;
 	mov ax, [lvldata_playerx]		;Get player position
@@ -704,10 +706,12 @@ movplayer:
 	test al, al						;Check if it could be moved
 	jz movplayer_end				;If not, quit
 	call drawmap					;Else, redraw map
-	movplayer_end:
-	popa
+	movplayer_end:					;
+	popa							;
+	mov bl, [movplayer_success]		;Update exit code
 	popf
 	ret
+	movplayer_success: db 0
 	movplayer_delta: dw 0
 	movplayer_cam_dx: db 0
 	movplayer_cam_dy: db 0
@@ -717,6 +721,7 @@ movplayer:
 ;cx - y position
 ;dl - x delta (0-1-2)
 ;dh - y delta (0-1-2)
+;return bl - 1 on success
 movtile:
 	pushf
 	pusha
@@ -725,6 +730,7 @@ movtile:
 	shr bx, 4									;
 	mov fs, bx									;
 	mov bx, 0									;Clear bx
+	mov byte [movtile_success], 0				;Assume failure
 	mov [movtile_srcx], ax						;Store source position in memory
 	mov [movtile_srcy], cx						;
 	call getmapaddr								;Get source tile
@@ -763,6 +769,7 @@ movtile:
 		add bx, 4								;Go 4 bytes forward
 		jmp movtile_l							;Loop
 	movtile_move:								;This part actually moves the tiles
+	mov byte [movtile_success], 1				;Moving success
 	mov dx, [bx + movtile_allowed + 2]			;Get new tile values that should be loaded
 	mov ax, [movtile_srcx]						;Get source tile coordinates
 	mov cx, [movtile_srcy]						;
@@ -785,10 +792,13 @@ movtile:
 	mov ax, [movtile_desty]						;
 	mov [lvldata_playery], ax					;
 	movtile_end:								;The end
+	call drawstack_draw
 	pop fs
 	popa
+	mov bl, [movtile_success]
 	popf
 	ret
+	movtile_success: db 0	;Exit code
 	movtile_src: db 0		;Source tile value
 	movtile_srcx: dw 0		;Source position
 	movtile_srcy: dw 0		;
@@ -856,8 +866,6 @@ movcam:
 	ret
 	movcam_moved: db 0
 
-
-
 ;Return requested map field address (relative to lvldata_map)
 ;ax - x position
 ;cx - y position
@@ -880,7 +888,6 @@ getmapaddr:
 	pop ax							;
 	popf							;
 	ret
-
 
 ;ax - level LBA address on disk
 ;return al - error code
