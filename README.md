@@ -1,5 +1,7 @@
 # sokoboot
-Sokoboot is a Sokoban type game bootable from floppy, written completely in i386 assembly.
+[![The GPL license](https://img.shields.io/badge/license-GPL-blue.svg?style=flat-square)](http://opensource.org/licenses/GPL-3.0)
+[![Travis CI](https://img.shields.io/travis/Jacajack/sokoboot/master.svg?style=flat-square)](https://travis-ci.org/Jacajack/sokoboot)
+<br>Sokoboot is a Sokoban type game bootable from floppy, written completely in i386 assembly (don't mind the 12% of C - it's only the level creator).
 
 I develop Sokoboot in my free time, just for fun. Surprisingly, I managed to develop it into a rather functional game, but there are still tons of things to improve.<br>
 **Any suggestions and contributions are welcome, especially ones according graphical design.** :heart:
