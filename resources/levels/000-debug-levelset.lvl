@@ -1,0 +1,57 @@
+~id: 0
+~author: "Jacajack"
+~name: "The author's joke"
+~desc: "I needed that for debugging..."
+~maxtime: 15
+~maxstep: 10
+wwwwwwww
+w@  & .w
+wwwwwwww
+`
+~id: 1
+~author: "Someone on the internet"
+~name: "The beginning"
+~desc: "We shall check if the game works, don't we?"
+   wwwww
+ www   w
+ w.@&  w
+ www &.w
+ w.ww& w
+ w w . ww
+ w& B&&.w
+ w   .  w
+ wwwwwwww
+`
+~id: 2
+~author: "I think, that comes from original Sokoban"
+~name: "The second trial"
+~desc: "We shall also check if we can get there!"
+~camx: 0
+~camy: 0
+    wwwww
+    w   w
+    w&  w
+  www  &ww
+  w  & & w
+www w ww w   wwwwwww
+w   w ww w www   ..w
+w &  &           ..w
+wwwww www w@ww   ..w
+    w     wwwwwwwwww
+    wwwwwww
+`
+~id: 3
+~name: "Original Sokoban level 2 (remixed)"
+~desc: "I didn't create this..."
+~author: "Thinking Rabbit + Jordi Domenech"
+############
+#....#     ######
+#....# $ $  $ $ #
+#... #$#### $   #
+#...   @ ##   $ #
+#..  # #  $ $   #
+###### ##$ $ #$ #
+  # $  $ $ $ #  #
+  #    #     ####
+  ############
+  
