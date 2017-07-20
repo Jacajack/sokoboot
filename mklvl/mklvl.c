@@ -22,14 +22,12 @@
 #define MAPLOAD_EFMT 	3
 #define MAPLOAD_EPLAYER 4
 #define MAPLOAD_EBOXES 	5
-
-#define GETLVL_OK 0
-#define GETLVL_EOF 1
-#define GETLVL_ERROR 2
+#define MAPLOAD_EALLOC	6
 
 //Metadata load errors
 #define INFLOAD_OK 		0
-#define INFLOAD_ERROR 	1
+#define INFLOAD_EWARN 	1
+#define INFLOAD_EALLOC 	2
 
 //In-game viewport size
 #define VIEWPORT_WIDTH 	20
@@ -37,72 +35,75 @@
 
 //Header size
 #define LVL_INF_SIZE 1024
-
-//The level header struct - has to be compatible with the one in sokoboot.asm
-union
-{
-	struct
-	{
-		char magic[8];
-		uint16_t id;
-		char name[80];
-		char desc[320];
-		uint16_t playerx;
-		uint16_t playery;
-		uint16_t width;
-		uint16_t height;
-		uint16_t camx;
-		uint16_t camy;
-		uint16_t flags[2];
-		uint16_t next;
-		uint8_t last;
-		uint16_t nextjmp; 
-		uint16_t boxcnt;
-		uint16_t maxtime;
-		uint16_t maxstep;
-		char author[80];
-	} __attribute__( ( __packed__ ) );
-
-	uint8_t raw[LVL_INF_SIZE];
-} lvl;
-
-
-//The map data - max size allowed by sokoboot
 #define MAP_WIDTH 256
 #define MAP_HEIGHT 256
-uint8_t map[MAP_WIDTH][MAP_HEIGHT] = {0};
+//The level header struct - has to be compatible with the one in sokoboot.asm
+struct lvl
+{
+	union
+	{
+		struct
+		{
+			char magic[8];
+			uint16_t id;
+			char name[80];
+			char desc[320];
+			uint16_t playerx;
+			uint16_t playery;
+			uint16_t width;
+			uint16_t height;
+			uint16_t camx;
+			uint16_t camy;
+			uint16_t flags[2];
+			uint16_t next;
+			uint8_t last;
+			uint16_t nextjmp; 
+			uint16_t boxcnt;
+			uint16_t maxtime;
+			uint16_t maxstep;
+			char author[80];
+		} __attribute__( ( __packed__ ) );
+
+		uint8_t raw[LVL_INF_SIZE];
+	};
+
+	uint8_t map[MAP_WIDTH][MAP_HEIGHT];
+};
 
 //Main status/configuration structure
 struct
 {
-	unsigned int forceCamPos : 1;
+	unsigned int forceCamx : 1;
+	unsigned int forceCamy : 1;
+	unsigned int forceNext : 1;
 	unsigned int : 0;
-
-	char *lvlstr;
-	size_t lvllen;
 
 	const char *exename;
 	const char *infilename, *outfilename;
 	FILE *infile, *outfile;
+
+	struct lvl *levels;
+	size_t levelCount;
+	char *data;
 } status;
 
 
 //Count given tiles on map
-int mapCount( uint8_t id )
+int mapcnt( struct lvl* level, uint8_t id )
 {
 	int i, j, cnt = 0;
 
 	//Count boxes
 	for ( i = 0; i < MAP_WIDTH; i++ )
 		for ( j = 0; j < MAP_HEIGHT; j++ )
-			cnt += map[i][j] == id;
+			cnt += level->map[i][j] == id;
 	return cnt;
 }
 
 //Load map data from file
-int mapLoad( )
+int mapload( struct lvl *level, const char *lvlstr )
 {
-	int c;
+	char c;
 	int i = 0;
 	uint16_t x = 0, y = 0;
 	uint16_t maxx = 0;
@@ -110,17 +111,21 @@ int mapLoad( )
 	int ign = 0;
 
 	//Read by character
-	while ( ( c = status.lvlstr[i++] ) != 0 )
+	while ( ( c = lvlstr[i++] ) != 0 )
 	{
 
-		//Ignore lines starting with '~'
-		if ( ign && (char) c == '\n' )
+		//Clear ignore flag on newline
+		if ( ign && c == '\n' )
 		{
 			ign = 0;
 			continue;
 		}
-		if ( x == 0 && (char) c == '~' )
+
+		//Set ignore flag on ~
+		if ( x == 0 && c == '~' )
 			ign = 1;
+
+		//If ignore flag is set, ignore line
 		if ( ign ) continue;
 
 
@@ -131,10 +136,10 @@ int mapLoad( )
 		if ( x > maxx ) maxx = x;
 
 		//Get map pointer
-		t = &map[x++][y];
+		t = &level->map[x++][y];
 
 		//Write various tiles into map, depending on character
-		switch ( (char) c )
+		switch ( c )
 		{
 			//Ignore CR - for DOS format handling
 			case '\r':
@@ -190,112 +195,84 @@ int mapLoad( )
 		}
 	}
 
-	if ( mapCount( TILE_PLAYER ) + mapCount( TILE_SOCKETPLAYER ) != 1 ) return MAPLOAD_EPLAYER;
-	if ( mapCount( TILE_BOX ) == 0 ) return MAPLOAD_EBOXES;
+	if ( mapcnt( level, TILE_PLAYER ) + mapcnt( level, TILE_SOCKETPLAYER ) != 1 ) return MAPLOAD_EPLAYER;
+	if ( mapcnt( level, TILE_BOX ) == 0 ) return MAPLOAD_EBOXES;
 
 	//Store detected level dimensions
-	lvl.width = maxx + 1;
-	lvl.height = y + 1;
+	level->width = maxx + 1;
+	level->height = y + 1;
 
 	return MAPLOAD_OK;
 }
 
 //Loads metadata form file
-int infLoad( )
+int infload( struct lvl *level, const char *lvlstr )
 {
 	char *buf = NULL;
-	char lineok = 0;
+	char tagok = 0;
 	char allok = 1;
-	char *str = strdup( status.lvlstr );
-	if ( str == NULL ) return INFLOAD_ERROR;
+	char *str;
+	char *toksave;
+	 
+	//Duplicate level string for strotok
+	if ( ( str = strdup( lvlstr ) ) == NULL ) return INFLOAD_EALLOC;
 
-	for ( buf = strtok( str, "\n" ); buf != NULL; buf = strtok( NULL, "\n" ) )
+	//Tokenize using NL
+	for ( buf = strtok_r( str, "\n", &toksave ); buf != NULL; buf = strtok_r( NULL, "\n", &toksave ) )
 	{
-		if ( buf[0] != '~' ) continue; //Skip 'commented out' lines
-		lineok = 0;
-		lineok += sscanf( buf, "~name: \"%79[^\"\n\r]\"", lvl.name );
-		lineok += sscanf( buf, "~desc: \"%319[^\"\n\r]\"", lvl.desc );
-		lineok += sscanf( buf, "~author: \"%79[^\"\n\r]\"", lvl.author );
-		lineok += sscanf( buf, "~next: %" SCNu16, &lvl.next );
-		lineok += sscanf( buf, "~last: %" SCNu8, &lvl.last );
-		lineok += sscanf( buf, "~nextjmp: %" SCNu16, &lvl.nextjmp );
-		lineok += sscanf( buf, "~id: %" SCNu16, &lvl.id );
-		lineok += sscanf( buf, "~maxtime: %" SCNu16, &lvl.maxtime );
-		lineok += sscanf( buf, "~maxstep: %" SCNu16, &lvl.maxstep );
-		
-		if ( sscanf( buf, "~campos: %" SCNu16 ", %" SCNu16, &lvl.camx, &lvl.camy )  == 2 )
-		{
-			status.forceCamPos = 1;
-			lineok += 1;
-		}
+		if ( buf[0] != '~' ) continue; //Skip lines that don't begin with ~
 
-		allok = allok && lineok == 1;
+		tagok = 0;
+		tagok += sscanf( buf, "~name: \"%79[^\"\n\r]\"", level->name );
+		tagok += sscanf( buf, "~desc: \"%319[^\"\n\r]\"", level->desc );
+		tagok += sscanf( buf, "~author: \"%79[^\"\n\r]\"", level->author );
+		tagok += ( status.forceNext |= sscanf( buf, "~next: %" SCNu16, &level->next ) );
+		tagok += ( status.forceNext |= sscanf( buf, "~last: %" SCNu8, &level->last ) );
+		tagok += ( status.forceNext |= sscanf( buf, "~nextjmp: %" SCNu16, &level->nextjmp ) );
+		tagok += sscanf( buf, "~id: %" SCNu16, &level->id );
+		tagok += sscanf( buf, "~maxtime: %" SCNu16, &level->maxtime );
+		tagok += sscanf( buf, "~maxstep: %" SCNu16, &level->maxstep );
+		tagok += ( status.forceCamx |= sscanf( buf, "~camx: %" SCNu16, &level->camx ) );
+		tagok += ( status.forceCamy |= sscanf( buf, "~camy: %" SCNu16, &level->camy ) );	
+
+		allok = allok && tagok;
 	}
 
+	//Free memory allocated by strdup
 	free( str );
-	if ( !allok ) return INFLOAD_ERROR;
+
+	if ( !allok ) return INFLOAD_EWARN;
 	else return INFLOAD_OK;
 }
 
-//Gets player position into level header
-void findPlayer( )
+//Finds first occurence of given tile on map
+//On fail, returns 1
+int mapfind( struct lvl *level, uint16_t *x, uint16_t *y, uint8_t id )
 {
 	int i, j;
 	for ( i = 0; i < MAP_HEIGHT; i++ )
 		for ( j = 0; j < MAP_WIDTH; j++ )
-			if ( map[j][i] == TILE_PLAYER || map[j][i] == TILE_SOCKETPLAYER )
+			if ( level->map[j][i] == id )
 			{
-				lvl.playerx = j;
-				lvl.playery = i;
-				return;
+				*x = j;
+				*y = i;
+				return 0;
 			}
-}
-
-int getlvl( FILE *f )
-{
-	long start, end;
-	int c;
-	int cnt = 0;
-	int delim = 0;
-	
-	if ( f == NULL ) return GETLVL_ERROR;
-	start = ftell( f );
-	
-	status.lvllen = 0;
-	if ( status.lvlstr != NULL ) free( status.lvlstr );
-	
-	while ( ( c = fgetc( f ) ) != EOF )
-	{
-		if ( (char) c == '~' ) cnt++;
-		else cnt = 0;
-		if ( cnt == 3 )
-		{
-			delim = 1;
-			break;
-		}
-	}
-
-	end = ftell( f );		
-	status.lvlstr = malloc( end - start + 1 );
-	if ( status.lvlstr == NULL ) return GETLVL_ERROR;
-	status.lvllen = end - start;
-	status.lvlstr[end - start] = 0;
-
-	fseek( f, start, SEEK_SET );
-	cnt = 0;
-	while ( ( c = fgetc( f ) ) != EOF && ftell( f ) < end )
-		status.lvlstr[cnt++] = c;
-
-	return delim ? GETLVL_OK : GETLVL_EOF;
+	return 1;
 }
 
 int main( int argc, char **argv )
 {
-	int ec, i, j, bytecnt;
-	
+	int ec, c, i, j, k, bytecnt;
+	long len;
+	char *lvlstr;
+	char *toksave;
+	struct lvl *level;
+
 	status.infile = NULL;
 	status.outfile = stdout;
 
+	//We shouldn'y bother with handling this case...
 	if ( argc == 0 )
 	{
 		fprintf( stderr, "What the hell are you doing?\n" );
@@ -304,6 +281,7 @@ int main( int argc, char **argv )
 
 	status.exename = argv[0];
 
+	//If input filename is missing, display help-like message
 	if ( argc == 1 )
 	{
 		fprintf( stderr, 	"%s: please specify input file name!\n" \
@@ -311,106 +289,152 @@ int main( int argc, char **argv )
 		exit( 1 );
 	}
 
+	//Get input file name
 	status.infilename = argv[1];
 	status.infile = fopen( status.infilename, "r" );
 
+	//Depending on argument count, open output file or leave it as is
 	if ( argc == 3 )
 	{
 		status.outfilename = argv[2];
 		status.outfile = fopen( status.outfilename, "w" );
 	}
 
+	//Check if input file can be opened
 	if ( status.infile == NULL )
 	{
 		fprintf( stderr, "%s: cannot open input file!\n", status.exename );
 		exit( 1 );
 	}
-
+	
+	//Check if output file can be opened
 	if ( status.outfile == NULL )
 	{
 		fprintf( stderr, "%s: cannot open output file!\n", status.exename );
 		exit( 1 );
 	}
 
+	//Load text data
+	i = 0;
+	fseek( status.infile, 0, SEEK_END );
+	len = ftell( status.infile );
+	fseek( status.infile, 0, SEEK_SET );
+	status.data = malloc( len + 1 );
+	while ( ( c = fgetc( status.infile ) ) != EOF && i < len )
+		status.data[i++] = c;
+	status.data[i] = 0;
 
-	//Make sure that the level structure is empty
-	memset( &lvl, 0, sizeof lvl );
-
-	getlvl( status.infile );
-
-	//Load metadata
-	ec = infLoad( );
-	if ( ec != INFLOAD_OK )
+	//Count levels
+	status.levelCount = 1;
+	lvlstr = status.data;
+	while ( ( lvlstr = strchr( lvlstr, '`' ) ) != NULL )
 	{
-		switch ( ec )
-		{
-			case INFLOAD_ERROR:
-				fprintf( stderr, "%s: warning [%s] - some level metadata skipped!\n", status.exename, status.infilename );
-				break;
-		}
+		lvlstr++;
+		status.levelCount++;
 	}
 	
-	//Load map
-	ec = mapLoad( );
-	if ( ec != MAPLOAD_OK )
+	//Allocate memory for levels
+	status.levels = calloc( status.levelCount, sizeof( struct lvl ) );
+
+	for ( lvlstr = strtok_r( status.data, "`", &toksave ), i = 0; lvlstr != NULL; lvlstr = strtok_r( NULL, "`", &toksave ), i++ )
 	{
-		switch ( ec )
+		level = &status.levels[i];
+
+		//Load metadata
+		ec = infload( level, lvlstr );
+		if ( ec != INFLOAD_OK )
 		{
-			case MAPLOAD_ESIZE:
-				fprintf( stderr, "%s: level too big!\n", status.exename );
-				break;
+			switch ( ec )
+			{
+				case INFLOAD_EWARN:
+					fprintf( stderr, "%s: [%d] some level metadata skipped!\n", status.exename, i );
+					break;
 
-			case MAPLOAD_EFMT:
-				fprintf( stderr, "%s: bad file format!\n", status.exename );
-				break;
-
-			case MAPLOAD_EPLAYER:
-				fprintf( stderr, "%s: bad player count!\n", status.exename );
-				break;
-
-			case MAPLOAD_EBOXES:
-				fprintf( stderr, "%s: level already solved!\n", status.exename );
-				break;
+				case INFLOAD_EALLOC:
+					fprintf( stderr, "%s: [%d] memory allocation error!\n", status.exename, i );
+					break;
+			}
 		}
-		exit( 1 );
-	}
+		
+		//Load map
+		ec = mapload( level, lvlstr );
+		if ( ec != MAPLOAD_OK )
+		{
+			switch ( ec )
+			{
+				case MAPLOAD_ESIZE:
+					fprintf( stderr, "%s: [%d]  level too big!\n", status.exename, i );
+					break;
+
+				case MAPLOAD_EFMT:
+					fprintf( stderr, "%s: [%d] bad file format!\n", status.exename, i );
+					break;
+
+				case MAPLOAD_EPLAYER:
+					fprintf( stderr, "%s: [%d] bad player count!\n", status.exename, i );
+					break;
+
+				case MAPLOAD_EBOXES:
+					fprintf( stderr, "%s: [%d] level already solved!\n", status.exename, i );
+					break;
+				
+				case MAPLOAD_EALLOC:
+					fprintf( stderr, "%s: [%d] memory allocation error!\n", status.exename, i );
+					break;
+			}
+			continue;
+		}
+			
+		//Find player
+		if ( mapfind( level, &level->playerx, &level->playery, TILE_PLAYER ) )
+			if ( mapfind( level, &level->playerx, &level->playery, TILE_SOCKETPLAYER ) )
+			{
+				fprintf( stderr, "%s: [%d] cannol locate player on the map!\n", status.exename, i );
+				continue;
+			}
+		
+		//Locate the camera
+		if ( !status.forceCamx ) level->camx = LIMIT( 0, LIMIT( 0, MAP_WIDTH - VIEWPORT_WIDTH, level->width - VIEWPORT_WIDTH ) , level->playerx - VIEWPORT_WIDTH / 2 );
+		if ( !status.forceCamy ) level->camy = LIMIT( 0, LIMIT( 0, MAP_HEIGHT - VIEWPORT_HEIGHT, level->height - VIEWPORT_HEIGHT ),level->playery - VIEWPORT_HEIGHT / 2 );
 	
-	//Find player
-	findPlayer( );
 
-	//Locate the camera
-	if ( !status.forceCamPos )
-	{
-		lvl.camx = LIMIT( 0, LIMIT( 0, MAP_WIDTH - VIEWPORT_WIDTH, lvl.width - VIEWPORT_WIDTH ) , lvl.playerx - VIEWPORT_WIDTH / 2 );
-		lvl.camy = LIMIT( 0, LIMIT( 0, MAP_HEIGHT - VIEWPORT_HEIGHT, lvl.height - VIEWPORT_HEIGHT ),lvl.playery - VIEWPORT_HEIGHT / 2 );
-	}
+		//Count boxes
+		level->boxcnt = mapcnt( level, TILE_BOX ) + mapcnt( level, TILE_SOCKETBOX );
 
-	//Coutn boxes
-	lvl.boxcnt = mapCount( TILE_BOX ) + mapCount( TILE_SOCKETBOX );
+		//Set some crucial stuff in level header
+		memcpy( level->magic, "soko lvl", 8 );
 
-	//Set some crucial stuff in level header
-	memcpy( lvl.magic, "soko lvl", 8 );
-
-	//Output raw level data
-	bytecnt = 0;
-	for ( i = 0; i < sizeof lvl; i++ ) fputc( lvl.raw[i], status.outfile );
-	for ( i = 0; i < lvl.height; i++ )	
-	{
-		for ( j = 0; j < lvl.width; j++ )
+		//If there's next level, setup jump pointer
+		if ( !status.forceNext && i < status.levelCount - 1 )
 		{
-			fputc( map[j][i], status.outfile );
-			bytecnt++;
+			fprintf( stderr, "%s: [%d] auto jump set...\n", status.exename, i );
+			level->nextjmp = level->width * level->height / 512 + 1 + 2;
 		}
+
+		//Mark as last, if there's no next level
+		if ( !status.forceNext && i == status.levelCount - 1 )
+		{
+			fprintf( stderr, "%s: [%d] marked as last...\n", status.exename, i );
+			level->last = 1;
+		}
+
+		//Output raw level data
+		bytecnt = 0;
+		for ( j = 0; j < 1024; j++ ) fputc( level->raw[j], status.outfile );
+		for ( j = 0; j < level->height; j++ )	
+		{
+			for ( k = 0; k < level->width; k++ )
+			{
+				fputc( level->map[k][j], status.outfile );
+				bytecnt++;
+			}
+		}
+
+		//Pad out to full sectors
+		bytecnt = ( level->width * level->height / 512 + 1 ) * 512 - bytecnt;
+		while ( bytecnt-- ) fputc( 0, status.outfile );	
 	}
 
-	//Pad out to full sectors
-	bytecnt = ( lvl.width * lvl.height / 512 + 1 ) * 512 - bytecnt;
-	while ( bytecnt-- ) fputc( 0, status.outfile );
-
-	fclose( status.infile );
-	fclose( status.outfile );
 	return 0;
-
-	
 }
 
