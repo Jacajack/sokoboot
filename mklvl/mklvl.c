@@ -347,11 +347,11 @@ int main( int argc, char **argv )
 			switch ( ec )
 			{
 				case INFLOAD_EWARN:
-					fprintf( stderr, "%s: [%d] some level metadata skipped!\n", status.exename, i );
+					fprintf( stderr, "%s: [%d @ %s] some level metadata skipped!\n", status.exename, i, status.infilename );
 					break;
 
 				case INFLOAD_EALLOC:
-					fprintf( stderr, "%s: [%d] memory allocation error!\n", status.exename, i );
+					fprintf( stderr, "%s: [%d @ %s] memory allocation error!\n", status.exename, i, status.infilename );
 					break;
 			}
 		}
@@ -363,23 +363,23 @@ int main( int argc, char **argv )
 			switch ( ec )
 			{
 				case MAPLOAD_ESIZE:
-					fprintf( stderr, "%s: [%d]  level too big!\n", status.exename, i );
+					fprintf( stderr, "%s: [%d @ %s]  level too big!\n", status.exename, i, status.infilename );
 					break;
 
 				case MAPLOAD_EFMT:
-					fprintf( stderr, "%s: [%d] bad file format!\n", status.exename, i );
+					fprintf( stderr, "%s: [%d @ %s] bad file format!\n", status.exename, i, status.infilename );
 					break;
 
 				case MAPLOAD_EPLAYER:
-					fprintf( stderr, "%s: [%d] bad player count!\n", status.exename, i );
+					fprintf( stderr, "%s: [%d @ %s] bad player count!\n", status.exename, i, status.infilename );
 					break;
 
 				case MAPLOAD_EBOXES:
-					fprintf( stderr, "%s: [%d] level already solved!\n", status.exename, i );
+					fprintf( stderr, "%s: [%d @ %s] level already solved!\n", status.exename, i, status.infilename );
 					break;
 				
 				case MAPLOAD_EALLOC:
-					fprintf( stderr, "%s: [%d] memory allocation error!\n", status.exename, i );
+					fprintf( stderr, "%s: [%d @ %s] memory allocation error!\n", status.exename, i, status.infilename );
 					break;
 			}
 			continue;
@@ -389,7 +389,7 @@ int main( int argc, char **argv )
 		if ( mapfind( level, &level->playerx, &level->playery, TILE_PLAYER ) )
 			if ( mapfind( level, &level->playerx, &level->playery, TILE_SOCKETPLAYER ) )
 			{
-				fprintf( stderr, "%s: [%d] cannol locate player on the map!\n", status.exename, i );
+				fprintf( stderr, "%s: [%d @ %s] cannol locate player on the map!\n", status.exename, i, status.infilename );
 				continue;
 			}
 		
@@ -407,14 +407,14 @@ int main( int argc, char **argv )
 		//If there's next level, setup jump pointer
 		if ( !status.forceNext && i < status.levelCount - 1 )
 		{
-			fprintf( stderr, "%s: [%d] auto jump set...\n", status.exename, i );
+			fprintf( stderr, "%s: [%d @ %s] auto jump set...\n", status.exename, i, status.infilename );
 			level->nextjmp = level->width * level->height / 512 + 1 + 2;
 		}
 
 		//Mark as last, if there's no next level
 		if ( !status.forceNext && i == status.levelCount - 1 )
 		{
-			fprintf( stderr, "%s: [%d] marked as last...\n", status.exename, i );
+			fprintf( stderr, "%s: [%d @ %s] marked as last...\n", status.exename, i, status.infilename );
 			level->last = 1;
 		}
 
