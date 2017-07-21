@@ -18,5 +18,6 @@
 %include "stdio/puthexw.asm"
 %include "stdio/puts.asm"
 %include "stdio/repchr.asm"
-
+%include "stdio/strcpy.asm"
+%include "stdio/strdec.asm"
 %endif
