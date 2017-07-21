@@ -30,9 +30,9 @@ The address (in this case, from line 656) should lead you to proper download.
  - At the very beginning the game will display a splash screen - you can close it with any key
  - When you are prompted to enter level location on the disk, you have to enter number of sector (LBA) where level is located. On the game disk level data usually starts at 342 or 324 (depending on your game version). On disks which contain only levels, first level will be very likely to be at sector 0.
  - If you've done everything right, game should appear - default keybindings are:
- - - <kb>W</kb> <kb>A</kb> <kb>S</kb> <kb>D</kb> or arrows - player movement
- - - <kb>I</kb> <kb>J</kb> <kb>K</kb> <kb>L</kb> - camera movement (free mode)
- - - <kb>Q</kb> - make camera follow player again
- - - <kb>Esc</kb> - abandon game
+ - - <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or arrows - player movement
+ - - <kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> - camera movement (free mode)
+ - - <kbd>Q</kbd> - make camera follow player again
+ - - <kbd>Esc</kbd> - abandon game
  - Have fun!
 
