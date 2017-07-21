@@ -320,59 +320,58 @@ lvldispinfo:
 gamestatus:
 	pushf
 	pusha
-	mov ah, 2						;Put cursor at line 24, col 1 
-	mov bh, 0						;
-	mov dh, 24						;
-	mov dl, 1						;
-	int 0x10						;
-	mov bl, 255						;White text
-	cmp byte [lvldata_camfree], 0	;If camera is in free mode, print special message
-	je gamestatus_camfollow			;
-	mov si, gamestatus_free_mesg	;
-	call puts						;
-	jmp gamestatus_end				;And nothing else
-	gamestatus_camfollow:			;If camer is in follow mode
-	mov si, gamestatus_box_mesg		;Print the rest of the message
-	call puts						;
-	mov ax, [game_boxleft]			;Print box count
-	stc								;Print 0s too
-	call putdec						;
-	cmp word [lvldata_maxtime], 0	;Check if leve has time limit
-	je gamestatus_skiptime			;
-	mov ah, 2						;Put cursor at line 24, col 18
-	mov bh, 0						;
-	mov dh, 24						;
-	mov dl, 18						;
-	int 0x10						;
-	mov bl, 255						;White text
-	mov si, gamestatus_time_mesg	;Print the rest of the message
-	call puts						;
-	mov ax, [game_timeleft]			;Print box count
-	stc								;Print 0s too
-	call putdec						;
-	gamestatus_skiptime:			;
-	cmp word [lvldata_maxstep], 0	;Check if level has limited step count
-	je gamestatus_skipstep			;If not, do not display remaining steps
-	mov ah, 2						;Put cursor at line 24, col 33
-	mov bh, 0						;
-	mov dh, 24						;
-	mov dl, 33						;
-	int 0x10						;
-	mov bl, 255						;White text
-	mov si, gamestatus_step_mesg	;Print the rest of the message
-	call puts						;
-	mov ax, [game_stepleft]			;Print box count
-	stc								;Print 0s too
-	call putdec						;
-	gamestatus_skipstep:
+	mov al, ' '								;Clear message
+	mov cx, gamestatus_mesg_len				;
+	mov di, gamestatus_mesg					;
+	cld										;
+	rep stosb								;
+	gamestatus_free:						;If camera is in free mode, print special message
+	cmp byte [lvldata_camfree], 0			;
+	je gamestatus_box						;
+	mov si, gamestatus_free_mesg			;
+	mov di, gamestatus_mesg					;
+	call strcpy								;
+	jmp gamestatus_print					;
+	gamestatus_box:							;Print box count
+	mov byte [gamestatus_mesg], 'B'			;
+	mov ax, [game_boxleft]					;
+	mov di, gamestatus_mesg + 1				;
+	stc										;
+	call strdec								;
+	gamestatus_time:						;Print time left
+	cmp word [lvldata_maxtime], 0			;
+	je gamestatus_step						;
+	mov byte [gamestatus_mesg + 15], 'T'	;
+	mov ax, [game_timeleft]					;
+	mov di, gamestatus_mesg + 16			;
+	stc										;
+	call strdec								;
+	gamestatus_step:						;Print steps left
+	cmp word [lvldata_maxstep], 0			;
+	je gamestatus_print						;
+	mov byte [gamestatus_mesg + 32], 'S'	;
+	mov ax, [game_stepleft]					;
+	mov di, gamestatus_mesg + 33			;
+	stc										;
+	call strdec								;
+	gamestatus_print:						;Print the message
+	mov ah, 2								;Put cursor at line 24, col 1 
+	mov bh, 0								;
+	mov dh, 24								;
+	mov dl, 1								;
+	int 0x10								;
+	mov bl, 255								;White text
+	mov si, gamestatus_mesg					;Call puts
+	call puts								;
 	gamestatus_end:
 	popa
 	popf
 	ret
-	gamestatus_box_mesg: db "B", 0
-	gamestatus_time_mesg: db "T", 0
-	gamestatus_step_mesg: db "S", 0
 	gamestatus_free_mesg: db "FREE CAM - PRESS Q TO ABORT", 0
+	gamestatus_mesg: 
+		times 38 db ' '
+		db 0
+	gamestatus_mesg_len equ 38
 
 ;This is the routine that should be called in order to start the game itself
 ;return al - if 0 game was exited
