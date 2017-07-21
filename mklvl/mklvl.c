@@ -31,7 +31,7 @@
 
 //In-game viewport size
 #define VIEWPORT_WIDTH 	20
-#define VIEWPORT_HEIGHT 16
+#define VIEWPORT_HEIGHT 12
 
 //Header size
 #define LVL_INF_SIZE 1024
@@ -66,6 +66,8 @@ struct lvl
 			uint8_t camfree;
 			uint16_t camxb;
 			uint16_t camyb;
+			uint16_t offsetx;
+			uint16_t offsety;
 		} __attribute__( ( __packed__ ) );
 
 		uint8_t raw[LVL_INF_SIZE];
@@ -79,6 +81,8 @@ struct
 {
 	unsigned int forceCamx : 1;
 	unsigned int forceCamy : 1;
+	unsigned int forceOffsetx : 1;
+	unsigned int forceOffsety : 1;
 	unsigned int forceNext : 1;
 	unsigned int forceId : 1;
 	unsigned int : 0;
@@ -118,7 +122,6 @@ int mapload( struct lvl *level, const char *lvlstr )
 	//Read by character
 	while ( ( c = lvlstr[i++] ) != 0 )
 	{
-
 		//Clear ignore flag on newline
 		if ( ign && c == '\n' )
 		{
@@ -210,6 +213,27 @@ int mapload( struct lvl *level, const char *lvlstr )
 	return MAPLOAD_OK;
 }
 
+
+//Add offset to map position
+void mapoffset( struct lvl *level )
+{
+	int i, j;
+
+	if ( (int) level->width + level->offsetx > 65535 ) return;
+	if ( (int) level->height + level->offsety > 65535 ) return;
+	if ( level->offsetx == 0 && level->offsety == 0 ) return;
+
+	for ( i = MAP_WIDTH - 1; i >= level->offsetx; i-- )
+		for ( j = MAP_WIDTH - 1; j >= level->offsety; j-- )
+		{
+			level->map[i][j] = level->map[i - level->offsetx][j - level->offsety];
+			level->map[i - level->offsetx][j - level->offsety] = TILE_AIR;
+		}
+
+	level->width += level->offsetx;
+	level->height += level->offsety;
+}
+
 //Loads metadata form file
 int infload( struct lvl *level, const char *lvlstr )
 {
@@ -240,6 +264,8 @@ int infload( struct lvl *level, const char *lvlstr )
 		tagok += ( status.forceCamx |= sscanf( buf, "~camx: %" SCNu16, &level->camx ) );
 		tagok += ( status.forceCamy |= sscanf( buf, "~camy: %" SCNu16, &level->camy ) );	
 		tagok += ( sscanf( buf, "~camlock: %" SCNu8, &level->camlock ) );
+		tagok += ( status.forceOffsetx |= sscanf( buf, "~offsetx: %" SCNu16, &level->offsetx ) );
+		tagok += ( status.forceOffsety |= sscanf( buf, "~offsety: %" SCNu16, &level->offsety ) );	
 		allok = allok && tagok;
 	}
 
@@ -255,6 +281,7 @@ int infload( struct lvl *level, const char *lvlstr )
 int mapfind( struct lvl *level, uint16_t *x, uint16_t *y, uint8_t id )
 {
 	int i, j;
+
 	for ( i = 0; i < MAP_HEIGHT; i++ )
 		for ( j = 0; j < MAP_WIDTH; j++ )
 			if ( level->map[j][i] == id )
@@ -389,7 +416,16 @@ int main( int argc, char **argv )
 			}
 			continue;
 		}
-			
+		
+		//If offset is not forced and neither is camera position, center the level on screen
+		if ( !status.forceCamx && !status.forceOffsetx && level->width < VIEWPORT_WIDTH ) level->offsetx = ( VIEWPORT_WIDTH - level->width ) / 2;
+		if ( !status.forceCamy && !status.forceOffsety && level->height < VIEWPORT_HEIGHT ) level->offsety = ( VIEWPORT_HEIGHT - level->height ) / 2;
+
+		fprintf( stderr, "offset %d, %d\n", level->offsetx, level->offsety );
+
+		//Add offset
+		mapoffset( level );
+
 		//Find player
 		if ( mapfind( level, &level->playerx, &level->playery, TILE_PLAYER ) )
 			if ( mapfind( level, &level->playerx, &level->playery, TILE_SOCKETPLAYER ) )
