@@ -63,6 +63,9 @@ struct lvl
 			uint16_t maxstep;
 			char author[80];
 			uint8_t camlock;
+			uint8_t camfree;
+			uint16_t camxb;
+			uint16_t camyb;
 		} __attribute__( ( __packed__ ) );
 
 		uint8_t raw[LVL_INF_SIZE];
