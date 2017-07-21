@@ -176,7 +176,9 @@ lvlprompt:
 	call puts					;
 	mov si, lvlprompt_buf		;Setup buffer for gets
 	mov di, lvlprompt_buf + 32	;
+	mov byte [gets_digits], 1 	;Accept ony digits
 	call gets					;Call gets
+	mov byte [gets_digits], 0	;
 	call atoi					;Convert read string into number
 	jc lvlprompt_loop			;If something went wrong, repeat
 	mov [lvlprompt_lba], ax		;Store the LBA
