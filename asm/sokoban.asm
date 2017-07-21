@@ -1272,7 +1272,6 @@ lvldata:
 	lvldata_camfree: db 0
 	lvldata_camxb: dw 0
 	lvldata_camyb: dw 0
-	lvldata_cleandraw: db 0
 	lvldata_reserved: times 1024 - ( $ - lvldata ) db 0
 	lvldata_map: times 65536 - ( $ - lvldata ) db 0
 
