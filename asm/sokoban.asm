@@ -326,6 +326,12 @@ gamestatus:
 	mov dl, 1						;
 	int 0x10						;
 	mov bl, 255						;White text
+	cmp byte [lvldata_camfree], 0	;If camera is in free mode, print special message
+	je gamestatus_camfollow			;
+	mov si, gamestatus_free_mesg	;
+	call puts						;
+	jmp gamestatus_end				;And nothing else
+	gamestatus_camfollow:			;If camer is in follow mode
 	mov si, gamestatus_box_mesg		;Print the rest of the message
 	call puts						;
 	mov ax, [game_boxleft]			;Print box count
@@ -359,12 +365,14 @@ gamestatus:
 	stc								;Print 0s too
 	call putdec						;
 	gamestatus_skipstep:
+	gamestatus_end:
 	popa
 	popf
 	ret
 	gamestatus_box_mesg: db "B", 0
 	gamestatus_time_mesg: db "T", 0
-	gamestatus_step_mesg: db "S", 0	
+	gamestatus_step_mesg: db "S", 0
+	gamestatus_free_mesg: db "FREE CAM - PRESS Q TO ABORT", 0
 
 ;This is the routine that should be called in order to start the game itself
 ;return al - if 0 game was exited
@@ -426,6 +434,7 @@ game:
 		game_key:								;
 		call getc								;Get keypress
 		call kbaction							;Process keyboard input
+		call drawstack_draw						;Independent drawstack call
 		jmp game_loop							;Loop
 	game_end:									;
 	popa										;
@@ -537,12 +546,22 @@ kbaction:
 		dw 'd', kbaction_player_mover
 		dw 'w', kbaction_player_moveu
 		dw 's', kbaction_player_moved
+		dw 'j', kbaction_cam_movel
+		dw 'l', kbaction_cam_mover
+		dw 'i', kbaction_cam_moveu
+		dw 'k', kbaction_cam_moved
+		dw 'q', kbaction_cam_follow
 		dw 'A', kbaction_player_movel
 		dw 'D', kbaction_player_mover
 		dw 'W', kbaction_player_moveu
 		dw 'S', kbaction_player_moved
+		dw 'J', kbaction_cam_movel
+		dw 'L', kbaction_cam_mover
+		dw 'I', kbaction_cam_moveu
+		dw 'K', kbaction_cam_moved
+		dw 'Q', kbaction_cam_follow	
 		dw 0x1b, kbaction_quit
-		kbaction_ascii_count equ 9
+		kbaction_ascii_count equ 19
 	kbaction_scancode: ;And some additional scancodes list
 		dw 0x4b, kbaction_player_movel
 		dw 0x4d, kbaction_player_mover
@@ -691,9 +710,13 @@ fadeout:
 	ret
 
 ;Draw visible part of map on screen
+;cf - if set, whole screen will be cleared
 drawmap:
 	pushf
 	pusha
+	jnc drawmap_nocls				;If cf is not set, jump to normal procedure
+	call gfxcls						;Else, clear screen
+	drawmap_nocls:					;
 	mov ax, [lvldata_camx]			;Get camera x
 	mov bx, ax						;
 	add bx, viewport_width			;And add viewport width to it
@@ -795,6 +818,9 @@ findplayer:
 movplayer:
 	pushf
 	pusha
+	mov byte [movplayer_success], 0
+	cmp byte [lvldata_camfree], 0
+	jne movplayer_end
 	mov ax, [lvldata_playerx]		;Get current player position
 	mov cx, [lvldata_playery]		;
 	mov [movplayer_delta], dx		;Store delta
@@ -852,10 +878,10 @@ movplayer:
 	mov byte [movplayer_cam_dy], 2	;
 	movplayer_cam_mov:				;
 	mov dx, [movplayer_cam_dx]		;Get camera delta from memory
+	call followcam					;
 	call movcam						;Move camera
 	test al, al						;Check if it could be moved
 	jz movplayer_end				;If not, quit
-	call drawmap					;Else, redraw map
 	movplayer_end:					;
 	popa							;
 	mov bl, [movplayer_success]		;Update exit code
@@ -942,7 +968,6 @@ movtile:
 	mov ax, [movtile_desty]						;
 	mov [lvldata_playery], ax					;
 	movtile_end:								;The end
-	call drawstack_draw
 	pop fs
 	popa
 	mov bl, [movtile_success]
@@ -965,6 +990,38 @@ movtile:
 		db tile_socketbox, tile_air, 		tile_socket, tile_box
 		db tile_socketbox, tile_socket, 	tile_socket, tile_socketbox
 	movtile_allowed_cnt equ 8
+
+;Make camera independent
+freecam:
+	pushf
+	pusha
+	cmp byte [lvldata_camfree], 0	;Execute only if camree flag is not set
+	jne freecam_end					;
+	mov ax, [lvldata_camx]			;Create backup of camera position
+	mov cx, [lvldata_camy]			;
+	mov [lvldata_camxb], ax			;
+	mov [lvldata_camyb], cx			;
+	mov byte [lvldata_camfree], 1	;Set camfree flag
+	freecam_end:
+	popa
+	popf
+	ret
+
+;Make camera follow player again
+followcam:
+	pushf
+	pusha
+	cmp byte [lvldata_camfree], 0	;Execute only if camfree flag is set
+	je followcam_end				;
+	mov ax, [lvldata_camxb]			;Restore backup of camera position
+	mov cx, [lvldata_camyb]			;
+	mov [lvldata_camx], ax			;
+	mov [lvldata_camy], cx			;
+	mov byte [lvldata_camfree], 0	;Clear camfree flag
+	followcam_end:
+	popa
+	popf
+	ret
 
 ;dl - detla x (0-1-2)
 ;dh - delta y (0-1-2)
@@ -1010,8 +1067,17 @@ movcam:
 	cmp dx, ax						;Now compare with max camera y allowed
 	ja movcam_end					;If exceeds - abort
 	mov [lvldata_camy], dx			;If've got here - everything's fine
-	mov byte [movcam_moved], 1		;Set 'moved' flag
+	mov byte [movcam_moved], 1		;Set 'moved' flag	
 	movcam_end:						;
+	cmp byte [movcam_moved], 0		;Check if camera has moved
+	je movcam_nodraw				;If no, skip redraw
+	clc								;Assume that clear won't be necessary
+	cmp byte [lvldata_camfree], 0	;Check if camera is in free mode
+	je movcam_draw					;If so, draw with clear
+	stc								;Else, do not clear and draw
+	movcam_draw:					;
+	call drawmap					;Redraw whole map
+	movcam_nodraw:					;
 	popa							;
 	mov al, [movcam_moved]			;Return value
 	popf
@@ -1180,8 +1246,8 @@ viewport_height equ 12
 
 sprites: incbin "../resources/sprites.bin"
 
-;Pad out to full track
-times 1 * 18 * 512 - ( $ - $$ ) db 0
+;Pad out to 2 full tracks
+times 2 * 18 * 512 - ( $ - $$ ) db 0
 
 ;Level data can take up to 72KB (8 tracks)
 ;Also, make sure that lvldata is located at address divisible by 16
@@ -1206,8 +1272,12 @@ lvldata:
 	lvldata_maxstep: dw 0
 	lvldata_author: times 80 db 0
 	lvldata_camlock: db 0
+	lvldata_camfree: db 0
+	lvldata_camxb: dw 0
+	lvldata_camyb: dw 0
+	lvldata_cleandraw: db 0
 	lvldata_reserved: times 1024 - ( $ - lvldata ) db 0
 	lvldata_map: times 65536 - ( $ - lvldata ) db 0
 
 ;Pad out to 9 tracks
-times 9 * 18 * 512 - ( $ - $$ ) db 0
+times 10 * 18 * 512 - ( $ - $$ ) db 0

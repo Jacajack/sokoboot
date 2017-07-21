@@ -19,14 +19,17 @@ mov ah, 0x00
 int 0x16
 
 ;Menu is currently in game, so let's just load everything
-mov dh, 1
-mov ch, 4
-mov cl, 1
-mov al, 18
-mov dl, [boot_drive]
+mov bx, ds
+mov es, bx
+mov ax, 162
 mov bx, 0x2900
+mov dl, [boot_drive]
+mov dh, 18
 mov byte [diskerr_handle], 1
-call diskrchs
+call diskrlba
+mov ax, 162 + 18
+mov bx, 0x2900 + 18 * 512
+call diskrlba
 jmp 0x2900
 
 jmp $

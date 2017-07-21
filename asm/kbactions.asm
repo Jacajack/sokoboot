@@ -1,4 +1,4 @@
-;Move player right and redraw drawstack contents
+;Move player right
 kbaction_player_mover:
 	pushf
 	pusha
@@ -11,7 +11,7 @@ kbaction_player_mover:
 	popf
 	ret
 
-;Move player up and redraw drawstack contents
+;Move player up
 kbaction_player_moveu:
 	pushf
 	pusha
@@ -24,7 +24,7 @@ kbaction_player_moveu:
 	popf
 	ret
 
-;Move player down and redraw drawstack contents
+;Move player down
 kbaction_player_moved:
 	pushf
 	pusha
@@ -37,7 +37,7 @@ kbaction_player_moved:
 	popf
 	ret
 
-;Move player left and redraw drawstack contents
+;Move player left
 kbaction_player_movel:
 	pushf
 	pusha
@@ -46,6 +46,73 @@ kbaction_player_movel:
 	call movplayer
 	xor bh, bh
 	sub [game_stepleft], bx
+	popa
+	popf
+	ret
+
+;Free camera and move it to the right
+kbaction_cam_mover:
+	pushf
+	pusha
+	call freecam
+	mov dl, 2
+	mov dh, 1
+	call movcam
+	stc
+	call drawmap
+	popa
+	popf
+	ret
+
+;Free camera and move it up
+kbaction_cam_moveu:
+	pushf
+	pusha
+	call freecam
+	mov dl, 1
+	mov dh, 0
+	call movcam
+	stc
+	call drawmap
+	popa
+	popf
+	ret
+
+;Free camera and move it down
+kbaction_cam_moved:
+	pushf
+	pusha
+	call freecam
+	mov dl, 1
+	mov dh, 2
+	call movcam
+	stc
+	call drawmap
+	popa
+	popf
+	ret
+
+;Free camera and move it to the left
+kbaction_cam_movel:
+	pushf
+	pusha
+	call freecam
+	mov dl, 0
+	mov dh, 1
+	call movcam
+	stc
+	call drawmap
+	popa
+	popf
+	ret
+	
+;Make camera follow player again
+kbaction_cam_follow:
+	pushf
+	pusha
+	call followcam
+	stc
+	call drawmap
 	popa
 	popf
 	ret
