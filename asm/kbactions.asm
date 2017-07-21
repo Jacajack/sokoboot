@@ -58,8 +58,6 @@ kbaction_cam_mover:
 	mov dl, 2
 	mov dh, 1
 	call movcam
-	stc
-	call drawmap
 	popa
 	popf
 	ret
@@ -72,8 +70,6 @@ kbaction_cam_moveu:
 	mov dl, 1
 	mov dh, 0
 	call movcam
-	stc
-	call drawmap
 	popa
 	popf
 	ret
@@ -86,8 +82,6 @@ kbaction_cam_moved:
 	mov dl, 1
 	mov dh, 2
 	call movcam
-	stc
-	call drawmap
 	popa
 	popf
 	ret
@@ -100,8 +94,6 @@ kbaction_cam_movel:
 	mov dl, 0
 	mov dh, 1
 	call movcam
-	stc
-	call drawmap
 	popa
 	popf
 	ret
@@ -111,7 +103,6 @@ kbaction_cam_follow:
 	pushf
 	pusha
 	call followcam
-	stc
 	call drawmap
 	popa
 	popf
