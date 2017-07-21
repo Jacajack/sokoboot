@@ -6,7 +6,7 @@
 I develop Sokoboot in my free time, just for fun. Surprisingly, I managed to develop it into a rather functional game, but there are still tons of things to improve.<br>
 **Any suggestions and contributions are welcome, especially ones according graphical design.** :heart:
 
-<br><img src=https://media.giphy.com/media/xT9NvmM7gWhPvxVcpq/giphy.gif></img><br>
+<br><img src=https://media.giphy.com/media/xUn3C0VeAwsNgpa9m8/giphy.gif></img><br>
 *I know these sprites are ugly.*
 
 
