@@ -65,8 +65,9 @@ splashload:
 		splashload_rest:					;Partial copy
 		shl cx, 9							;Multilply number of left sectors with 512
 		splashload_memcpy:					;Copy data
+		shr cx, 1							;Divide byte count by 2 (we will be copying words)
 		cld									;Clear direction flag (growing addresses)
-		rep movsb							;Repeat byte copy operation
+		rep movsw							;Repeat byte copy operation
 		pop cx								;Restore address counter
 		add cx, 512 * splash_sector_portion	;Increment address counter
 		add ax, splash_sector_portion		;Increment sector counter
