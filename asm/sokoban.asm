@@ -369,7 +369,7 @@ gamestatus:
 	popa
 	popf
 	ret
-	gamestatus_free_mesg: db "FREE CAM - PRESS Q TO ABORT", 0
+	gamestatus_free_mesg: db "FREE CAM - PRESS Q TO DISABLE", 0
 	gamestatus_mesg: 
 		times 38 db ' '
 		db 0
