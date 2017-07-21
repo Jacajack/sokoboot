@@ -12,7 +12,7 @@ I develop Sokoboot in my free time, just for fun. Surprisingly, I managed to dev
 
 ### How do I build Sokoboot?
  - Firstly, install necessary packages - `sudo apt-get install moreutils nasm python`
- - And then the Python packages - `sudo pip install Image` (sometimes `sudo pip install --upgrade pip` may be neccessary before)
+ - And then the Python packages - `sudo pip install Image` (sometimes `sudo pip install --upgrade pip` may be necessary before)
  - Then, you need to build the level builder - `make -C mklvl`
  - After that you should be able to run `make` without any errors
 
@@ -24,4 +24,15 @@ The address (in this case, from line 656) should lead you to proper download.
  - If you've got Linux - just write `img` file to floppy disk using `dd` command.
  - If you've got Windows - use a cool piece of software called [rawwrite](http://www.chrysocome.net/rawwrite) 
  - If you don't want to waste floppy disk, you can use `make run` in order to launch game in Qemu emulator.
-  
+ 
+
+### How to play?
+ - At the very beginning the game will display a splash screen - you can close it with any key
+ - When you are prompted to enter level location on the disk, you have to enter number of sector (LBA) where level is located. On the game disk level data usually starts at 342 or 324 (depending on your game version). On disks which contain only levels, first level will be very likely to be at sector 0.
+ - If you've done everything right, game should appear - default keybindings are:
+ - - <kb>W</kb> <kb>A</kb> <kb>S</kb> <kb>D</kb> or arrows - player movement
+ - - <kb>I</kb> <kb>J</kb> <kb>K</kb> <kb>L</kb> - camera movement (free mode)
+ - - <kb>Q</kb> - make camera follow player again
+ - - <kb>Esc</kb> - abandon game
+ - Have fun!
+
