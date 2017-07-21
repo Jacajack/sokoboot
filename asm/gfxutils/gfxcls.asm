@@ -4,6 +4,7 @@
 gfxcls:
 	pushf
 	pusha
+	push es
 	mov ax, 0xA000		;Make es point video memory
 	mov es, ax			;
 	mov cx, 32000		;We will write 32000 times (word each time)
@@ -11,6 +12,7 @@ gfxcls:
 	mov ax, 0			;Fill it with 0s
 	cld					;Clear direction flag
 	rep stosw			;Kinda memset
+	pop es
 	popa
 	popf
 	ret
