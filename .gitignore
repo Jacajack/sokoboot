@@ -6,3 +6,5 @@ bin
 *.swp
 mklvl/mklvl
 mklvl/*.txt
+*.lvl
+!resources/levels/*.lvl
