@@ -8,7 +8,7 @@ mov [boot_drive], dl
 ;Move stack to upper parts of the memory - normally it would collide with loaded level data
 mov dx, 0x8fc0
 mov ss, dx
-mov bp, 0xffff
+mov bp, 0xfffe
 mov sp, bp
 
 call menu
