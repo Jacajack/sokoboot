@@ -997,6 +997,8 @@ freecam:
 	pushf
 	pusha
 	cmp byte [lvldata_camfree], 0	;Execute only if camree flag is not set
+	jne freecam_end
+	cmp byte [lvldata_camlock], 0	;And if camlock is not set
 	jne freecam_end					;
 	mov ax, [lvldata_camx]			;Create backup of camera position
 	mov cx, [lvldata_camy]			;
