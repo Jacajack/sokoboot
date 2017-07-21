@@ -388,9 +388,11 @@ game:
 	mov ah, 0x0									;
 	int 0x10									;
 	call palsetup								;Setup color palette
+	call vbufcl									;Clear video buffer
 	call findplayer								;Find player on map
 	call drawmap								;Draw whole map for the start
 	game_loop:									;The game loop
+		call vbufflush							;Flush video buffer
 		call mapcnt								;Count tiles on map
 		mov ax, [mapcnt_box]					;Get box count
 		mov [game_boxleft], ax					;
@@ -593,7 +595,7 @@ drawsprite:
 	push es
 	mov [drawsprite_x], cx 			;Store offset
 	mov [drawsprite_y], dx 			;Store offset
-	mov ax, 0xA000					;Setup extra segment register
+	mov ax, vbuf_addr				;Setup extra segment register
 	mov es, ax						;
 	mov dx, 0 						;Vertical (slower) loop
 	drawsprite_l1:					;
@@ -634,7 +636,7 @@ drawsprite:
 ;ax - x tile position
 ;cx - y tile position
 drawtile:
-	pushf
+	pushf 
 	pusha
 	push fs					;Setup segment register - we want to access whole 65536 byte long map as one segment
 	mov bx, [lvldata_camx]	;Load camera position into bx and dx
@@ -713,8 +715,7 @@ fadeout:
 drawmap:
 	pushf
 	pusha
-	jnc drawmap_nocls				;If cf is not set, jump to normal procedure
-	call gfxcls						;Else, clear screen
+	call vbufcl						;Always clear screen
 	drawmap_nocls:					;
 	mov ax, [lvldata_camx]			;Get camera x
 	mov bx, ax						;
@@ -810,7 +811,6 @@ findplayer:
 	ret
 
 ;Moves player around the map
-
 ;dl - x delta (0-1-2)
 ;dh - y delta (0-1-2)
 ;return bl - 1 on success
@@ -1069,12 +1069,7 @@ movcam:
 	mov byte [movcam_moved], 1		;Set 'moved' flag	
 	movcam_end:						;
 	cmp byte [movcam_moved], 0		;Check if camera has moved
-	je movcam_nodraw				;If no, skip redraw
-	clc								;Assume that clear won't be necessary
-	cmp byte [lvldata_camfree], 0	;Check if camera is in free mode
-	je movcam_draw					;If so, draw with clear
-	stc								;Else, do not clear and draw
-	movcam_draw:					;
+	je movcam_nodraw				;If no, skip redrawing
 	call drawmap					;Redraw whole map
 	movcam_nodraw:					;
 	popa							;
@@ -1230,6 +1225,7 @@ boot_drive: db 0
 %include "diskutils.asm"
 %include "stdio.asm"
 %include "debug.asm"
+%include "vbuf.asm"
 
 mesg_nl: db 13, 10, 0
 
