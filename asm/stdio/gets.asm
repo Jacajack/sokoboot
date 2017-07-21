@@ -20,8 +20,8 @@ gets:
 		int 0x16					;
 		cmp al, 08					;If key is backspace, execute special handler
 		je gets_bp					;
-		cmp al, 27					;Quit on CR, LF and Esc
-		je gets_addnul				;
+		cmp al, 27					;Quit on CR, LF
+		je gets_skipchr				;
 		cmp al, 10					;
 		je gets_addnul				;
 		cmp al, 13					;
