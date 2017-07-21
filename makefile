@@ -41,7 +41,7 @@ force:
 rebuild: clean all
 
 run:
-	qemu-system-i386 -boot a -fda sokoboot.img
+	qemu-system-i386 -vga cirrus -boot a -fda sokoboot.img
 
 split: sokoboot.img
 	bash split.sh
