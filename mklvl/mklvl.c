@@ -74,19 +74,22 @@ struct lvl
 	};
 
 	uint8_t map[MAP_WIDTH][MAP_HEIGHT];
+	
+	struct
+	{
+		unsigned int camx : 1;
+		unsigned int camy : 1;
+		unsigned int offsetx : 1;
+		unsigned int offsety : 1;
+		unsigned int next : 1;
+		unsigned int name : 1;
+		unsigned int id : 1;
+		unsigned int : 0;
+	} force;
 };
-
 //Main status/configuration structure
 struct
 {
-	unsigned int forceCamx : 1;
-	unsigned int forceCamy : 1;
-	unsigned int forceOffsetx : 1;
-	unsigned int forceOffsety : 1;
-	unsigned int forceNext : 1;
-	unsigned int forceId : 1;
-	unsigned int : 0;
-
 	const char *exename;
 	const char *infilename, *outfilename;
 	FILE *infile, *outfile;
@@ -252,20 +255,20 @@ int infload( struct lvl *level, const char *lvlstr )
 		if ( buf[0] != '~' ) continue; //Skip lines that don't begin with ~
 
 		tagok = 0;
-		tagok += sscanf( buf, "~name: \"%79[^\"\n\r]\"", level->name );
+		tagok += ( level->force.name |= sscanf( buf, "~name: \"%79[^\"\n\r]\"", level->name ) );
 		tagok += sscanf( buf, "~desc: \"%319[^\"\n\r]\"", level->desc );
 		tagok += sscanf( buf, "~author: \"%79[^\"\n\r]\"", level->author );
-		tagok += ( status.forceNext |= sscanf( buf, "~next: %" SCNu16, &level->next ) );
-		tagok += ( status.forceNext |= sscanf( buf, "~last: %" SCNu8, &level->last ) );
-		tagok += ( status.forceNext |= sscanf( buf, "~nextjmp: %" SCNu16, &level->nextjmp ) );
-		tagok += ( status.forceId |= sscanf( buf, "~id: %" SCNu16, &level->id ) );
+		tagok += ( level->force.next |= sscanf( buf, "~next: %" SCNu16, &level->next ) );
+		tagok += ( level->force.next |= sscanf( buf, "~last: %" SCNu8, &level->last ) );
+		tagok += ( level->force.next |= sscanf( buf, "~nextjmp: %" SCNu16, &level->nextjmp ) );
+		tagok += ( level->force.id |= sscanf( buf, "~id: %" SCNu16, &level->id ) );
 		tagok += sscanf( buf, "~maxtime: %" SCNu16, &level->maxtime );
 		tagok += sscanf( buf, "~maxstep: %" SCNu16, &level->maxstep );
-		tagok += ( status.forceCamx |= sscanf( buf, "~camx: %" SCNu16, &level->camx ) );
-		tagok += ( status.forceCamy |= sscanf( buf, "~camy: %" SCNu16, &level->camy ) );	
+		tagok += ( level->force.camx |= sscanf( buf, "~camx: %" SCNu16, &level->camx ) );
+		tagok += ( level->force.camy |= sscanf( buf, "~camy: %" SCNu16, &level->camy ) );	
 		tagok += ( sscanf( buf, "~camlock: %" SCNu8, &level->camlock ) );
-		tagok += ( status.forceOffsetx |= sscanf( buf, "~offsetx: %" SCNu16, &level->offsetx ) );
-		tagok += ( status.forceOffsety |= sscanf( buf, "~offsety: %" SCNu16, &level->offsety ) );	
+		tagok += ( level->force.offsetx |= sscanf( buf, "~offsetx: %" SCNu16, &level->offsetx ) );
+		tagok += ( level->force.offsety |= sscanf( buf, "~offsety: %" SCNu16, &level->offsety ) );	
 		allok = allok && tagok;
 	}
 
@@ -416,10 +419,10 @@ int main( int argc, char **argv )
 			}
 			continue;
 		}
-		
+
 		//If offset is not forced and neither is camera position, center the level on screen
-		if ( !status.forceCamx && !status.forceOffsetx && level->width < VIEWPORT_WIDTH ) level->offsetx = ( VIEWPORT_WIDTH - level->width ) / 2;
-		if ( !status.forceCamy && !status.forceOffsety && level->height < VIEWPORT_HEIGHT ) level->offsety = ( VIEWPORT_HEIGHT - level->height ) / 2;
+		if ( !level->force.camx && !level->force.offsetx && level->width < VIEWPORT_WIDTH ) level->offsetx = ( VIEWPORT_WIDTH - level->width ) / 2;
+		if ( !level->force.camy && !level->force.offsety && level->height < VIEWPORT_HEIGHT ) level->offsety = ( VIEWPORT_HEIGHT - level->height ) / 2;
 
 		fprintf( stderr, "%s [%d @ %s] level data offset of %d, %d\n", status.exename, i, status.infilename, level->offsetx, level->offsety );
 
@@ -435,9 +438,11 @@ int main( int argc, char **argv )
 			}
 		
 		//Locate the camera
-		if ( !status.forceCamx ) level->camx = LIMIT( 0, LIMIT( 0, MAP_WIDTH - VIEWPORT_WIDTH, level->width - VIEWPORT_WIDTH ) , level->playerx - VIEWPORT_WIDTH / 2 );
-		if ( !status.forceCamy ) level->camy = LIMIT( 0, LIMIT( 0, MAP_HEIGHT - VIEWPORT_HEIGHT, level->height - VIEWPORT_HEIGHT ),level->playery - VIEWPORT_HEIGHT / 2 );
+		if ( !level->force.camx ) level->camx = LIMIT( 0, LIMIT( 0, MAP_WIDTH - VIEWPORT_WIDTH, level->width - VIEWPORT_WIDTH ) , level->playerx - VIEWPORT_WIDTH / 2 );
+		if ( !level->force.camy ) level->camy = LIMIT( 0, LIMIT( 0, MAP_HEIGHT - VIEWPORT_HEIGHT, level->height - VIEWPORT_HEIGHT ),level->playery - VIEWPORT_HEIGHT / 2 );
 	
+		//Generate name if there's none
+		if ( !level->force.name ) snprintf( level->name, 80, "Level %d", i ); 
 
 		//Count boxes
 		level->boxcnt = mapcnt( level, TILE_BOX ) + mapcnt( level, TILE_SOCKETBOX );
@@ -446,21 +451,21 @@ int main( int argc, char **argv )
 		memcpy( level->magic, "soko lvl", 8 );
 
 		//If there's next level, setup jump pointer
-		if ( !status.forceNext && i < status.levelCount - 1 )
+		if ( !level->force.next && i < status.levelCount - 1 )
 		{
 			fprintf( stderr, "%s: [%d @ %s] auto jump set...\n", status.exename, i, status.infilename );
 			level->nextjmp = level->width * level->height / 512 + 1 + 2;
 		}
 
 		//Mark as last, if there's no next level
-		if ( !status.forceNext && i == status.levelCount - 1 )
+		if ( !level->force.next && i == status.levelCount - 1 )
 		{
 			fprintf( stderr, "%s: [%d @ %s] marked as last...\n", status.exename, i, status.infilename );
 			level->last = 1;
 		}
 
 		//Automatically assign ID
-		if ( !status.forceId ) 
+		if ( !level->force.id ) 
 		{
 			fprintf( stderr, "%s: [%d @ %s] id set...\n", status.exename, i, status.infilename );
 			level->id = i;
