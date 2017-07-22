@@ -1,6 +1,12 @@
 [org 0x2900]
 [map all sokoban.map]
 
+;Some defines
+%define VBUF_OFFSET 0x7000
+%define VBUF_LEN 0xfa00
+%define GFXTEXT_VBUF_OFFSET VBUF_OFFSET
+%define GFXTEXT_FONT "../resources/font.bin"
+
 ;Get boot drive number
 pop dx
 mov [boot_drive], dl
@@ -357,14 +363,11 @@ gamestatus:
 	stc										;
 	call strdec								;
 	gamestatus_print:						;Print the message
-	mov ah, 2								;Put cursor at line 24, col 1 
-	mov bh, 0								;
-	mov dh, 24								;
-	mov dl, 1								;
-	int 0x10								;
-	mov bl, 255								;White text
-	mov si, gamestatus_mesg					;Call puts
-	call puts								;
+	mov bx, 0x00ff							;White text, black background
+	mov cx, 8								;Col = 1
+	mov dx, 192								;Row = 24
+	mov si, gamestatus_mesg					;Load message
+	call gfxputs							;Call gfxputs
 	gamestatus_end:
 	popa
 	popf
@@ -597,7 +600,7 @@ drawsprite:
 	push es
 	mov [drawsprite_x], cx 			;Store offset
 	mov [drawsprite_y], dx 			;Store offset
-	mov ax, vbuf_addr				;Setup extra segment register
+	mov ax, VBUF_OFFSET				;Setup extra segment register
 	mov es, ax						;
 	mov dx, 0 						;Vertical (slower) loop
 	drawsprite_l1:					;
@@ -1230,6 +1233,7 @@ boot_drive: db 0
 %include "stdio.asm"
 %include "debug.asm"
 %include "vbuf.asm"
+%include "gfxtext.asm"
 
 mesg_nl: db 13, 10, 0
 
