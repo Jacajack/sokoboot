@@ -44,7 +44,7 @@ gfxputc:
 			push bx					;Store position
 			mov bx, cx				;
 			test byte [fs:bx], dl	;Get one pixel from font
-			setnz cl				;Depending on its value, set cl
+			setz cl					;Depending on its value, set cl
 			xor ch, ch				;
 			add cx, gfxputc_fg		;Add foreground color address to cx
 			mov bx, cx				;
@@ -53,12 +53,14 @@ gfxputc:
 			mov [es:bx], cl			;Write cl into video memory
 			pop cx					;
 			shl dl, 1				;Shift bit mask
-			inc bx					;Increment bx (one pixel to the right)
+			add bx, 1				;Increment bx (one pixel to the right)
+			jc gfxputc_col_end		;Overflow protection
 			inc ah					;Increment col counter
 			jmp gfxputc_col			;Loop
 		gfxputc_col_end:			;Loop end
 		pop bx						;Restore position
 		add bx, 320					;Add 320 to it (next pixel line)
+		jc gfxputc_end				;Overflow protection
 		inc cx						;Next font data byte
 		inc al						;Increment row counter
 		jmp gfxputc_row				;Loop
