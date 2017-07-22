@@ -24,7 +24,10 @@ resources/sprites.bin:
 resources/levels.bin: mklvl/mklvl
 	./build-levels.sh
 
-resources: resources/levels.bin resources/sprites.bin resources/splash.bin
+resources/font.bin:
+	./font2bin.py resources/font.png > resources/font.bin
+
+resources: resources/levels.bin resources/sprites.bin resources/splash.bin resources/font.bin
 
 lmklvl/mklvl:
 	cd lmklvl && make all
@@ -41,7 +44,7 @@ force:
 rebuild: clean all
 
 run:
-	qemu-system-i386 -vga cirrus -boot a -fda sokoboot.img
+	qemu-system-i386 -cpu pentium -vga cirrus -boot a -fda sokoboot.img
 
 split: sokoboot.img
 	bash split.sh
