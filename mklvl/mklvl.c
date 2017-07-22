@@ -424,7 +424,7 @@ int main( int argc, char **argv )
 		if ( !level->force.camx && !level->force.offsetx && level->width < VIEWPORT_WIDTH ) level->offsetx = ( VIEWPORT_WIDTH - level->width ) / 2;
 		if ( !level->force.camy && !level->force.offsety && level->height < VIEWPORT_HEIGHT ) level->offsety = ( VIEWPORT_HEIGHT - level->height ) / 2;
 
-		fprintf( stderr, "%s [%d @ %s] level data offset of %d, %d\n", status.exename, i, status.infilename, level->offsetx, level->offsety );
+		fprintf( stderr, "%s: [%d @ %s] level data offset of %d, %d\n", status.exename, i, status.infilename, level->offsetx, level->offsety );
 
 		//Add offset
 		mapoffset( level );
