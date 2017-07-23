@@ -4,7 +4,7 @@
 ;Some defines
 %define VBUF_OFFSET 0x7000
 %define VBUF_LEN 0xfa00
-%define GFXTEXT_VBUF_OFFSET VBUF_OFFSET
+%define GFXTEXT_VBUF_OFFSET VBUF_OFFSET 
 %define GFXTEXT_FONT "../resources/font.bin"
 
 ;Get boot drive number
@@ -393,15 +393,17 @@ game:
 	mov ah, 0x0									;
 	int 0x10									;
 	call palsetup								;Setup color palette
+	clc
 	call vbufcl									;Clear video buffer
 	call findplayer								;Find player on map
 	call drawmap								;Draw whole map for the start
 	game_loop:									;The game loop
-		call vbufflush							;Flush video buffer
 		call mapcnt								;Count tiles on map
 		mov ax, [mapcnt_box]					;Get box count
 		mov [game_boxleft], ax					;
 		call gamestatus							;Show game status
+		clc										;
+		call vbufflush							;Flush video buffer
 		mov byte [game_exitc], game_exit_win	;Get proper exit code
 		cmp word [mapcnt_box], 0				;If it's 0, the game is finished
 		je game_end								;
@@ -716,12 +718,13 @@ fadeout:
 	ret
 
 ;Draw visible part of map on screen
-;cf - if set, whole screen will be cleared
 drawmap:
 	pushf
 	pusha
+	mov cx, 320 * 192 / 2			;Clear only part of the buffer containing map
+	stc								;
 	call vbufcl						;Always clear screen
-	drawmap_nocls:					;
+	clc								;
 	mov ax, [lvldata_camx]			;Get camera x
 	mov bx, ax						;
 	add bx, viewport_width			;And add viewport width to it
