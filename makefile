@@ -1,4 +1,4 @@
-all: clean force bin/sokoboot.bin
+all: clean force resources bin/sokoboot.bin
 	cd bin && cp sokoboot.bin ..
 	dd status=noxfer conv=notrunc if=bin/sokoboot.bin of=sokoboot.img
 
@@ -29,7 +29,7 @@ resources/font.bin:
 
 resources: resources/levels.bin resources/sprites.bin resources/splash.bin resources/font.bin
 
-lmklvl/mklvl:
+mklvl/mklvl:
 	cd lmklvl && make all
 
 clean:
