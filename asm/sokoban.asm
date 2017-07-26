@@ -1,4 +1,4 @@
-[org 0x2900]
+org 0x2900]
 [map all sokoban.map]
 
 ;Some defines
@@ -275,10 +275,13 @@ lvldispinfo:
 	mov si, lvldispinfo_nl			;
 	call puts						;
 	lvldispinfo_disp_desc:			;Display description
+	cmp byte [lvldata_desc], 0		;
+	je lvldispinfo_disp_end			;
 	mov si, lvldispinfo_desc		;
 	call puts						;
 	mov si, lvldata_desc			;
 	call puts						;
+	lvldispinfo_disp_end:			;
 	mov si, lvldispinfo_nl			;Additional nl
 	call puts						;
 	call puts						;
