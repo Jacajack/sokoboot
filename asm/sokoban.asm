@@ -114,7 +114,7 @@ screenmesg:
 	mov dh, 23					;
 	mov dl, 0					;
 	int 0x10					;
-	mov al, '-'					;Display horizontal line
+	mov al, 196					;Display horizontal line
 	mov cx, 80					;
 	call repchr					;
 	mov si, screenmesg_mesg		;Display message telling user what to do
@@ -176,7 +176,7 @@ lvlprompt:
 	mov si, lvlprompt_header	;Print header in the middle
 	call putctr					;
 	mov cx, 80					;And horizontal line
-	mov al, '-'					;
+	mov al, 196					;
 	call repchr					;
 	mov si, lvlprompt_prompt	;And display prompt characer
 	call puts					;
@@ -209,7 +209,7 @@ lvldispinfo:
 	mov si, lvldispinfo_nl			;
 	call puts						;
 	mov cx, 80						;
-	mov al, '-'						;Display horizontal bar
+	mov al, 196						;Display horizontal bar
 	call repchr						;
 	mov si, lvldispinfo_nl			;Additional nl
 	call puts						;
@@ -290,7 +290,7 @@ lvldispinfo:
 	mov dh, 23						;
 	mov dl, 0						;
 	int 0x10						;
-	mov al, '-'						;Display horizontal line
+	mov al, 196						;Display horizontal line
 	mov cx, 80						;
 	call repchr						;
 	mov si, lvldispinfo_keys		;Display message about expected keys
