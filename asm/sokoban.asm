@@ -405,7 +405,7 @@ game:
 	mov es, ax									;
 	mov ax, 0									;
 	mov bl, 0									;
-	mov si, 0									;										;
+	mov si, 0									;
 	call palload								;Load dedicated color palette
 	pop es										;
 	clc											;
