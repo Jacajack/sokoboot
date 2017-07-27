@@ -8,12 +8,13 @@
 
 //Map tile values
 #define TILE_AIR 			0
-#define TILE_PLAYER 		5
-#define TILE_WALL 			1
-#define TILE_BOX 			2
-#define TILE_SOCKET 		3
-#define TILE_SOCKETBOX 		4
-#define TILE_SOCKETPLAYER 	6
+#define TILE_FLOOR			1
+#define TILE_PLAYER 		6
+#define TILE_WALL 			2
+#define TILE_BOX 			3
+#define TILE_SOCKET 		4
+#define TILE_SOCKETBOX 		5
+#define TILE_SOCKETPLAYER 	7
 
 //Map loader errors
 #define MAPLOAD_OK 		0
@@ -73,8 +74,10 @@ struct lvl
 		uint8_t raw[LVL_INF_SIZE];
 	};
 
+
 	uint8_t map[MAP_WIDTH][MAP_HEIGHT];
-	
+	uint8_t floodmap[MAP_WIDTH][MAP_HEIGHT];
+
 	struct
 	{
 		unsigned int camx : 1;
@@ -99,6 +102,18 @@ struct
 	char *data;
 } status;
 
+//Floodfill map
+void mapflood( struct lvl* level, int x, int y )
+{
+	if ( level == NULL || x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT || level->map[x][y] == TILE_WALL || level->floodmap[x][y] ) return;
+
+	level->floodmap[x][y] = 1;
+	if ( level->map[x][y] == TILE_AIR ) level->map[x][y] = TILE_FLOOR;
+	mapflood( level, x + 1, y );
+	mapflood( level, x - 1, y );
+	mapflood( level, x, y + 1 );
+	mapflood( level, x, y - 1 );
+}
 
 //Count given tiles on map
 int mapcnt( struct lvl* level, uint8_t id )
@@ -436,7 +451,10 @@ int main( int argc, char **argv )
 				fprintf( stderr, "%s: [%d @ %s] cannol locate player on the map!\n", status.exename, i, status.infilename );
 				continue;
 			}
-		
+	
+		//Add floor
+		mapflood( level, level->playerx, level->playery );
+
 		//Locate the camera
 		if ( !level->force.camx ) level->camx = LIMIT( 0, LIMIT( 0, MAP_WIDTH - VIEWPORT_WIDTH, level->width - VIEWPORT_WIDTH ) , level->playerx - VIEWPORT_WIDTH / 2 );
 		if ( !level->force.camy ) level->camy = LIMIT( 0, LIMIT( 0, MAP_HEIGHT - VIEWPORT_HEIGHT, level->height - VIEWPORT_HEIGHT ),level->playery - VIEWPORT_HEIGHT / 2 );
