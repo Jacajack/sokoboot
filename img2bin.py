@@ -1,4 +1,6 @@
 #!/usr/bin/python
+#Script usage: ./img2bin.py <image file> > <binary file>
+
 import sys
 import math
 import os
@@ -13,6 +15,7 @@ image = image.convert( "RGB" );
 binstdout = os.fdopen( sys.stdout.fileno( ), "wb" )
 width, height = image.size
 
+#Just output the binary data in 8bpp (bbgggrrr)
 for y in range( 0, height ):
 	for x in range( 0, width ):
 		r, g, b = image.getpixel( ( x, y ) );

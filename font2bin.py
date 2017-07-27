@@ -1,4 +1,6 @@
 #!/usr/bin/python
+#Script usage: ./font2bin.py <font image file> > <binary file>
+
 import sys
 import math
 import os
@@ -14,10 +16,12 @@ binstdout = os.fdopen( sys.stdout.fileno( ), "wb" )
 width, height = image.size
 row = 0
 
-if ( width > 8 ):
+if ( width != 8 ):
     sys.stderr.write( "aborting - bad font width" );
     exit( 1 );
 
+#Each pixel in line corresponds to one bit in byte
+#Each line is 1 byte
 for y in range( 0, height ):
 	row = 0;
         for x in range( 0, width ):
