@@ -14,12 +14,18 @@ bin/001-init.bin: resources/splash.bin
 bin/002-sokoban.bin: resources/sprites.bin
 	cd asm && nasm sokoban.asm -f bin -o ../bin/002-sokoban.bin
 
-resources/splash.bin:
-	./img2bin.py resources/splash.png > resources/splash.bin
+resources/splash.bin: resources/splash.png resources/splash.pal.bin
+	./img2palbin.py resources/splash.png resources/splash.pal.bin > resources/splash.bin
 	dd if=/dev/zero of=resources/splash.bin bs=1 count=0 seek=73728
 
-resources/sprites.bin:
-	./img2bin.py resources/sprites.png > resources/sprites.bin
+resources/splash.pal.bin: resources/splash.png
+	./img2pal.py resources/splash.png > resources/splash.pal.bin
+
+resources/sprites.bin: resources/sprites.png resources/sprites.pal.bin
+	./img2palbin.py resources/sprites.png resources/sprites.pal.bin > resources/sprites.bin
+	
+resources/sprites.pal.bin: resources/sprites.png
+	./img2pal.py resources/sprites.png > resources/sprites.pal.bin
 
 resources/levels.bin: mklvl/mklvl
 	./build-levels.sh

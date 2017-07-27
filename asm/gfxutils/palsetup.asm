@@ -1,8 +1,8 @@
-%ifndef GFXUTILS_PALSETUP
-%define GFXUTILS_PALSETUP
+%ifndef GFXUTILS_PALGEN
+%define GFXUTILS_PALGEN
 
-;Setup color palette (bbgggrrr)
-palsetup:
+;Generate color palette (bbgggrrr)
+palgen:
 	pushf
 	pusha
 	mov ax, 0			;Output 0 to 0x03c8 - overwrite whole palette

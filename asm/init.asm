@@ -10,8 +10,15 @@ mov ah, 0x0
 int 0x10
 
 ;Load splash screen
-call palsetup
+push es
+mov ax, ds
+mov es, ax
+mov ax, 0
+mov bl, 0
+mov si, splashpal
+call palload
 call splashload
+pop es
 
 ;Wait for a keypress
 mov al, 0x00
@@ -89,6 +96,8 @@ splashload:
 %endif
 
 boot_drive: db 0
+
+splashpal: incbin "../resources/splash.pal.bin"
 
 %include "diskutils.asm"
 %include "gfxutils.asm"

@@ -331,6 +331,9 @@ lvldispinfo:
 gamestatus:
 	pushf
 	pusha
+	push es									;Wee need es to have value of ds
+	mov ax, ds								;
+	mov es, ax								;
 	mov al, ' '								;Clear message
 	mov cx, gamestatus_mesg_len				;
 	mov di, gamestatus_mesg					;
@@ -372,11 +375,12 @@ gamestatus:
 	mov si, gamestatus_mesg					;Load message
 	call gfxputs							;Call gfxputs
 	gamestatus_end:
+	pop es
 	popa
 	popf
 	ret
 	gamestatus_free_mesg: db "FREE CAM - PRESS Q TO DISABLE", 0
-	gamestatus_mesg: 
+	gamestatus_mesg:
 		times 38 db ' '
 		db 0
 	gamestatus_mesg_len equ 38
@@ -395,8 +399,16 @@ game:
 	mov al, 0x13								;Enter 13h graphics mode
 	mov ah, 0x0									;
 	int 0x10									;
-	call palsetup								;Setup color palette
-	clc
+	push es										;Point es to sprites color palette
+	mov ax, spritespal							;
+	shr ax, 4									;
+	mov es, ax									;
+	mov ax, 0									;
+	mov bl, 0									;
+	mov si, 0									;										;
+	call palload								;Load dedicated color palette
+	pop es										;
+	clc											;
 	call vbufcl									;Clear video buffer
 	call findplayer								;Find player on map
 	call drawmap								;Draw whole map for the start
@@ -696,6 +708,10 @@ drawtile:
 fadeout:
 	pushf
 	pusha
+	push es						;Load palette address to es
+	mov ax, spritespal			;
+	shr ax, 4					;
+	mov es, ax					;
 	mov cl, 0					;Reset counter
 	fadeout_loop:				;
 		cmp cl, -64				;Bottom limit is -64
@@ -703,7 +719,8 @@ fadeout:
 		mov al, cl				;Tweak color palette using counter value 
 		mov ah, cl				;
 		mov bl, cl				;
-		call paltweak			;
+		mov si, 0				;
+		call palload			;Load palette with tweak
 		push cx					;Store counter value
 		mov ah, 0				;Get system time
 		int 0x1a				;
@@ -716,6 +733,7 @@ fadeout:
 		sub cl, 4				;Substract 8 from counter
 		jmp fadeout_loop		;
 	fadeout_end:
+	pop es
 	popa
 	popf
 	ret
