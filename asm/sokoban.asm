@@ -475,7 +475,7 @@ mapcnt:
 	mov fs, bx							;
 	mov ax, 0							;Clear loop counter
 	mapcnt_l0:							;
-		cmp ax, mapcnt_idlim			;Loop boundary is ID limir
+		cmp ax, tile_maxid				;Loop boundary is ID limit
 		jae mapcnt_l0_end				;
 		mov bx, ax						;Backup loop counter
 		shl bx, 1						;Multiply loop counter with 2
@@ -493,7 +493,7 @@ mapcnt:
 			je mapcnt_l2_end			;
 			call getmapaddr				;Get current tile address
 			mov bl, [fs:bx]				;Get current tile
-			cmp bl, mapcnt_idlim		;Check if tile is below ID limit
+			cmp bl, tile_maxid			;Check if tile is below ID limit
 			ja mapcnt_skip				;
 			shl bl, 1					;Mutiply tile id with 2 (counters are words)
 			xor bh, bh					;Clear upper bx part
@@ -517,7 +517,7 @@ mapcnt:
 	mapcnt_socketbox: dw 0
 	mapcnt_player: dw 0
 	mapcnt_socketplayer: dw 0
-	mapcnt_idlim equ 6
+	mapcnt_floor: dw 0
 
 ;Manage ingame key actions
 ;ax - ASCII code and scancode
@@ -991,15 +991,19 @@ movtile:
 	movtile_destx: dw 0		;Destination position
 	movtile_desty: dw 0		;
 	movtile_allowed:		;Allowed movement combinations (src, dest -> new src, new dest)
-		db tile_player, tile_air, 			tile_air, tile_player
-		db tile_player, tile_socket, 		tile_air, tile_socketplayer
-		db tile_socketplayer, tile_air, 	tile_socket, tile_player
+		db tile_player, tile_floor,			tile_floor, tile_player
+		db tile_player, tile_air,			tile_air, tile_player
+		db tile_player, tile_socket, 		tile_floor, tile_socketplayer
 		db tile_socketplayer, tile_socket, 	tile_socket, tile_socketplayer
+		db tile_socketplayer, tile_floor, 	tile_socket, tile_player
+		db tile_socketplayer, tile_air, 	tile_socket, tile_player
+		db tile_box, tile_socket, 			tile_floor, tile_socketbox
+		db tile_box, tile_floor, 			tile_floor, tile_box
 		db tile_box, tile_air, 				tile_air, tile_box
-		db tile_box, tile_socket, 			tile_air, tile_socketbox
-		db tile_socketbox, tile_air, 		tile_socket, tile_box
 		db tile_socketbox, tile_socket, 	tile_socket, tile_socketbox
-	movtile_allowed_cnt equ 8
+		db tile_socketbox, tile_floor, 		tile_socket, tile_box
+		db tile_socketbox, tile_air, 		tile_socket, tile_box
+	movtile_allowed_cnt equ 12
 
 ;Make camera independent
 freecam:
@@ -1244,16 +1248,25 @@ boot_drive: db 0
 mesg_nl: db 13, 10, 0
 
 tile_air equ 0
-tile_wall equ 1
-tile_box equ 2
-tile_socket equ 3
-tile_socketbox equ 4
-tile_player equ 5
-tile_socketplayer equ 6
+tile_floor equ 1
+tile_wall equ 2
+tile_box equ 3
+tile_socket equ 4
+tile_socketbox equ 5
+tile_player equ 6
+tile_socketplayer equ 7
+
+tile_maxid equ 7
 viewport_width equ 20
 viewport_height equ 12
 
+;Locate the sprite data at address divisible by 16
+times 16 - ( ( $ - $$ ) % 16 ) db 0
 sprites: incbin "../resources/sprites.bin"
+
+;Locate the palette data at address divisible by 16
+times 16 - ( ( $ - $$ ) % 16 ) db 0
+spritespal: incbin "../resources/sprites.pal.bin"
 
 ;Pad out to 2 full tracks
 times 2 * 18 * 512 - ( $ - $$ ) db 0
