@@ -36,13 +36,14 @@ resources/font.bin:
 resources: resources/levels.bin resources/sprites.bin resources/splash.bin resources/font.bin
 
 mklvl/mklvl:
-	cd lmklvl && make all
+	make -C mklvl 	
 
 clean:
 	-rm -r bin
 	-rm -r split
 	-rm sokoboot.img
 	-rm sokoboot.bin
+	make -C mklvl clean
 
 force:
 	-mkdir bin
