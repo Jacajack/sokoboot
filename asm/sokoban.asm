@@ -523,13 +523,13 @@ mapcnt:
 	ret									;
 	mapcnt_cnt:
 	mapcnt_air: dw 0
+	mapcnt_floor: dw 0
 	mapcnt_wall: dw 0
 	mapcnt_box: dw 0
 	mapcnt_socket: dw 0
 	mapcnt_socketbox: dw 0
 	mapcnt_player: dw 0
 	mapcnt_socketplayer: dw 0
-	mapcnt_floor: dw 0
 
 ;Manage ingame key actions
 ;ax - ASCII code and scancode
