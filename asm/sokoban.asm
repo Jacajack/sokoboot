@@ -1,4 +1,4 @@
-org 0x2900]
+[org 0x2900]
 [map all sokoban.map]
 
 ;Some defines
