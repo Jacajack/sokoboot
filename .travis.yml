@@ -3,7 +3,7 @@ language: assembly
 before_install:
     - sudo apt-get update
 install:
-    - sudo add-apt-repository ppa:jonathonf/python-2.7
+    - sudo add-apt-repository ppa:jonathonf/python-2.7 -y
     - sudo apt-get update
     - sudo apt-get install 
     - sudo apt-get install nasm python moreutils python2.7
