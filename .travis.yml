@@ -3,7 +3,11 @@ language: assembly
 before_install:
     - sudo apt-get update
 install:
-    - sudo apt-get install nasm python moreutils
+    - sudo add-apt-repository ppa:jonathonf/python-2.7
+    - sudo apt-get update
+    - sudo apt-get install 
+    - sudo apt-get install nasm python moreutils python2.7
+    - python --version  
     - sudo pip install --upgrade pip
     - sudo pip install Image
 script:
