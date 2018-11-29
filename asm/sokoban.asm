@@ -943,8 +943,8 @@ movtile:
 	push dx										;Add delta to source position
 	mov dh, 0									;
 	add ax, dx									;
-	jc movtile_end								;Abort if destination exceeds range
 	pop dx										;
+	jc movtile_end								;Abort if destination exceeds range
 	mov dl, dh									;
 	mov dh, 0									;
 	add cx, dx									;
