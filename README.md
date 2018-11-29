@@ -10,7 +10,7 @@ I develop Sokoboot in my free time, just for fun. Surprisingly, I managed to dev
 *I know these sprites are ugly.*
 
 
-### How do I build Sokoboot?
+### How to build Sokoboot?
  - Firstly, install necessary packages - `sudo apt-get install moreutils nasm python`
  - And then the Python packages - `sudo pip install Image` (sometimes `sudo pip install --upgrade pip` may be necessary before)
  - Then, you need to build the level builder - `make -C mklvl`
@@ -20,7 +20,7 @@ Alternatively, you can download `sokoboot.img` already built by Travis. Go to So
 <br><img src=http://i.imgur.com/RwOB1UT.png></img><br>
 The address (in this case, from line 656) should lead you to proper download.
 
-### How do I run Sokoboot?
+### How to run Sokoboot?
  - If you've got Linux - just write `img` file to floppy disk using `dd` command.
  - If you've got Windows - use a cool piece of software called [rawwrite](http://www.chrysocome.net/rawwrite) 
  - If you don't want to waste floppy disk, you can use `make run` in order to launch game in Qemu emulator.
@@ -28,7 +28,7 @@ The address (in this case, from line 656) should lead you to proper download.
 
 ### How to play?
  - At the very beginning the game will display a splash screen - you can close it with any key
- - When you are prompted to enter level location on the disk, you have to enter number of sector (LBA) where level is located. On the game disk level data usually starts at 342 or 324 (depending on your game version). On disks which contain only levels, first level will be very likely to be at sector 0.
+ - When you are prompted to enter level location on the disk, you have to enter number of sector (LBA) where level is located. On the game disk level data usually starts at 342 or 324 (depending on your game version). On disks which contain only levels, first level will probably start at sector 0.
  - If you've done everything right, game should appear - default keybindings are:
  - - <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or arrows - player movement
  - - <kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> - camera movement (free mode)
