@@ -4,7 +4,7 @@
 <br>Sokoboot is a Sokoban type game bootable from floppy, written completely in i386 assembly (don't mind the 12% of C - it's only the level creator).
 
 I develop Sokoboot in my free time, just for fun. Surprisingly, I managed to develop it into a rather functional game, but there are still tons of things to improve.<br>
-**Any suggestions and contributions are welcome, especially ones according graphical design.** :heart:
+**Any suggestions and contributions are welcome, especially those according graphical design.** :eyes:
 
 <br><img src=https://media.giphy.com/media/xUn3C0VeAwsNgpa9m8/giphy.gif></img><br>
 *I know these sprites are ugly.*
@@ -12,7 +12,7 @@ I develop Sokoboot in my free time, just for fun. Surprisingly, I managed to dev
 
 ### How to build Sokoboot?
  - Firstly, install necessary packages - `sudo apt-get install moreutils nasm python`
- - And then the Python packages - `sudo pip install Image` (sometimes `sudo pip install --upgrade pip` may be necessary before)
+ - And then the Python packages - `sudo pip install Image` (sometimes `sudo pip install --upgrade pip` may be necessary beforehand)
  - Then, you need to build the level builder - `make -C mklvl`
  - After that you should be able to run `make` without any errors
 
@@ -27,9 +27,9 @@ The address (in this case, from line 656) should lead you to proper download.
  
 
 ### How to play?
- - At the very beginning the game will display a splash screen - you can close it with any key
- - When you are prompted to enter level location on the disk, you have to enter number of sector (LBA) where level is located. On the game disk level data usually starts at 342 or 324 (depending on your game version). On disks which contain only levels, first level will probably start at sector 0.
- - If you've done everything right, game should appear - default keybindings are:
+ - At the very beginning the game will display a splash screen - you can dismiss by pressing any key
+ - When you are prompted to enter level location on the disk, you have to enter number of sector (LBA) where level is located. On the game disk level data usually starts at 342 or 324 (depending on your game version). On disks which contain only levels, first level will likely start at sector 0.
+ - If you've done everything right, game should start - default keybindings are:
  - - <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or arrows - player movement
  - - <kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> - camera movement (free mode)
  - - <kbd>Q</kbd> - make camera follow player again
